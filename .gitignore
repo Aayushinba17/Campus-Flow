@@ -54,3 +54,6 @@ env/
 ENV/
 .venv/
 .pytest_cache/
+
+# Secrets
+*.pem

@@ -106,6 +106,30 @@ TABLES = [
         ],
         "BillingMode": "PAY_PER_REQUEST",
     },
+    {
+        "TableName": f"{settings.DYNAMODB_TABLE_PREFIX}_missed_calls",
+        "KeySchema": [
+            {"AttributeName": "user_id",  "KeyType": "HASH"},
+            {"AttributeName": "call_id",  "KeyType": "RANGE"},
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "user_id",  "AttributeType": "S"},
+            {"AttributeName": "call_id",  "AttributeType": "S"},
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+    },
+    {
+        "TableName": f"{settings.DYNAMODB_TABLE_PREFIX}_locations",
+        "KeySchema": [
+            {"AttributeName": "user_id",     "KeyType": "HASH"},
+            {"AttributeName": "location_id", "KeyType": "RANGE"},
+        ],
+        "AttributeDefinitions": [
+            {"AttributeName": "user_id",     "AttributeType": "S"},
+            {"AttributeName": "location_id", "AttributeType": "S"},
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+    },
 ]
 
 async def init_dynamodb():

@@ -10,7 +10,9 @@ from app.api.routes import (
     reminders,
     chat,
     notes,
-    wellness
+    wellness,
+    email_summarization,
+    location,
 )
 
 @asynccontextmanager
@@ -39,6 +41,8 @@ app.include_router(reminders.router,      prefix="/api/reminders",       tags=["
 app.include_router(chat.router,           prefix="/api/chat",            tags=["Chat"])
 app.include_router(notes.router,          prefix="/api/notes",           tags=["Notes"])
 app.include_router(wellness.router,       prefix="/api/wellness",        tags=["Wellness"])
+app.include_router(email_summarization.router, prefix="/api/emails", tags=["Email Summarization"])
+app.include_router(location.router,            prefix="/api/location",      tags=["Location Context"])
 
 @app.get("/health")
 async def health():
