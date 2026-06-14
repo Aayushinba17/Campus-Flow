@@ -7,7 +7,7 @@ def get_rekognition_client():
     # Using ap-southeast-1 (Singapore) — the closest supported region.
     return boto3.client(
         "rekognition",
-        region_name="ap-southeast-1",
+        region_name="us-east-1",
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
     )
