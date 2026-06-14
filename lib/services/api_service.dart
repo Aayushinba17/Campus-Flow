@@ -32,13 +32,6 @@ class ApiService {
     return jsonDecode(r.body);
   }
 
-  Future<Map<String, dynamic>> semanticSearchNotes(String query, {int topK = 5}) async =>
-    _post(AppConstants.notesSemanticSearch, {
-      'user_id': _uid,
-      'query': query,
-      'top_k': topK,
-    });
-
   // ── Health check ──────────────────────────────────────────────────────
 
   Future<bool> isServerReachable() async {
@@ -275,6 +268,22 @@ class ApiService {
       headers: _headers,
     );
   }
+
+  Future<String> getClassroomAuthUrl() async {
+    final r = await _get('${AppConstants.classroomOAuthStart}?user_id=$_uid');
+    return r['auth_url'] as String;
+  } 
+
+  Future<bool> isClassroomConnected() async {
+    final r = await _get('${AppConstants.classroomStatus}/$_uid');
+    return r['connected'] == true;
+  }
+
+  Future<Map<String, dynamic>> syncClassroom() async =>
+    _post(AppConstants.classroomSync, {'user_id': _uid});
+
+  Future<Map<String, dynamic>> syncClassroomAnnouncements() async =>
+    _post(AppConstants.classroomSyncAnn, {'user_id': _uid});
   
   Future<List<dynamic>> semanticSearchNotes(String query, {int topK = 5}) async {
     final r = await _post(AppConstants.notesSemanticSearch, {

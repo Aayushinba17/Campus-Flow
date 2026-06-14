@@ -61,3 +61,4 @@ ENV/
 *.pem
 test_anthropic.py
 test_bedrock.py
+*.zip

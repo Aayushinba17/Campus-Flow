@@ -21,6 +21,12 @@ void callbackDispatcher() {
     final api = ApiService();
     final alertService = ProactiveAlertService();
     switch (task) {
+      case AppConstants.taskClassroomSync:
+        if (await api.isClassroomConnected()) {
+          await api.syncClassroom();
+          await api.syncClassroomAnnouncements();
+        }
+        break;
       case AppConstants.taskDigest:
         await api.getMorningDigest();
         break;
@@ -61,6 +67,14 @@ void main() async {
     AppConstants.taskNotifSync,
     AppConstants.taskNotifSync,
     frequency: const Duration(minutes: 30),
+    constraints: Constraints(networkType: NetworkType.connected),
+    existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+  );
+
+  await Workmanager().registerPeriodicTask(
+  AppConstants.taskClassroomSync,
+    AppConstants.taskClassroomSync,
+    frequency: const Duration(hours: 3),  // Google Classroom changes slowly
     constraints: Constraints(networkType: NetworkType.connected),
     existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
   );

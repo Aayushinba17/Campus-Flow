@@ -7,7 +7,7 @@ boto3
 botocore
 python-multipart
 httpx
-google-generativeai
+google-genai
 google-auth
 google-auth-oauthlib
 google-api-python-client

@@ -1,6 +1,6 @@
 class AppConstants {
   // ── Replace with your EC2 public IP ──────────────────────────────────
-  static const String baseUrl = 'http://3.80.224.136:8001;
+  static const String baseUrl = 'http://3.80.224.136:8001';
 
   // ── For demo/testing without EC2 ─────────────────────────────────────
   // static const String baseUrl = 'http://10.0.2.2:8000'; // Android emulator localhost
@@ -101,4 +101,14 @@ class AppConstants {
   static const String taskUsageSync      = 'usage_stats_sync';
   static const String taskWellness       = 'wellness_reminders';
   static const String taskSleepCheck     = 'sleep_check';
+
+  // Google Classroom
+static const String classroomOAuthStart = '/api/classroom/oauth/start';
+static const String classroomStatus     = '/api/classroom/status';
+static const String classroomSync       = '/api/classroom/sync';
+static const String classroomSyncAnn    = '/api/classroom/sync-announcements';
+static const String classroomDisconnect = '/api/classroom/disconnect';
+
+// New WorkManager task
+static const String taskClassroomSync   = 'classroom_sync';
 }

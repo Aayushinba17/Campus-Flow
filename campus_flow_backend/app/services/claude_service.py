@@ -14,7 +14,30 @@ class GeminiResponse:
         self.content = [GeminiMessageContent(text)]
 
 class GeminiMessages:
+    class GeminiMessages:
     def create(self, model, max_tokens, system, messages):
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(
+            api_key=settings.GEMINI_API_KEY,
+            http_options=types.HttpOptions(api_version="v1"),
+        )
+
+        contents = []
+        for m in messages:
+            content = m["content"] if m["content"] else " "
+            role = "user" if m["role"] == "user" else "model"
+            contents.append({"role": role, "parts": [{"text": content}]})
+
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            config=types.GenerateContentConfig(system_instruction=system),
+            contents=contents,
+        )
+        text = response.text or "No response generated."
+        return GeminiResponse(text)
+        
         import google.generativeai as genai
         genai.configure(api_key=settings.GEMINI_API_KEY)
         
@@ -31,7 +54,6 @@ class GeminiMessages:
             model_name="gemini-1.5-flash",
             system_instruction=system
         )
-        
         response = gen_model.generate_content(gemini_msgs)
         # Ensure we return valid text even if blocked
         text = "No response generated."
