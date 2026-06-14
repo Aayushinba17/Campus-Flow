@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:file_picker/file_picker.dart';
 import '../services/api_service.dart';
 
 class NotesScreen extends StatefulWidget {
@@ -271,15 +273,26 @@ class _NotesScreenState extends State<NotesScreen> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () async {
-                      // TODO: Add your file picker logic here (e.g., using file_picker package)
-                      // File selectedFile = await pickFile();
-                      // if (selectedFile != null) {
-                      //   Navigator.pop(context);
-                      //   _showProcessingDialog();
-                      //   await _api.processNoteFile(selectedFile, subject: subjectCtrl.text);
-                      //   if (mounted) Navigator.pop(context);
-                      //   _loadNotes();
-                      // }
+                      try {
+                        final result = await FilePicker.platform.pickFiles(
+                          type: FileType.custom,
+                          allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+                        );
+                        if (result != null && result.files.single.path != null) {
+                          File selectedFile = File(result.files.single.path!);
+                          if (mounted) Navigator.pop(context);
+                          _showProcessingDialog();
+                          await _api.processNoteFile(selectedFile, subject: subjectCtrl.text.isNotEmpty ? subjectCtrl.text : null);
+                          if (mounted) Navigator.pop(context);
+                          _loadNotes();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('File processed by AI! ✨'), backgroundColor: Color(0xFF059669)));
+                          }
+                        }
+                      } catch (e) {
+                        if (mounted) Navigator.pop(context);
+                      }
                     },
                     icon: const Icon(Icons.upload_file, color: Color(0xFFE8592B)),
                     label: const Text('Upload File', style: TextStyle(color: Color(0xFFE8592B))),

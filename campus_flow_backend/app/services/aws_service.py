@@ -3,9 +3,11 @@ import uuid
 from app.core.config import settings
 
 def get_rekognition_client():
+    # Rekognition is NOT available in ap-east-1 (Hong Kong).
+    # Using ap-southeast-1 (Singapore) — the closest supported region.
     return boto3.client(
         "rekognition",
-        region_name=settings.AWS_REGION,
+        region_name="ap-southeast-1",
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
     )

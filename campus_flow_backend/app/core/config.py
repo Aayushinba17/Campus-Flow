@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     # AWS
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = "" 
-    AWS_REGION: str = "ap-south-1"          # Mumbai — closest to India
+    AWS_REGION: str = "ap-east-1"
     S3_BUCKET_NAME: str = "campusflow-files"
     DYNAMODB_TABLE_PREFIX: str = "campusflow"
 
