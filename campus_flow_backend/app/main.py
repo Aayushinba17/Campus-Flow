@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.database import init_dynamodb
+from app.api.routes import classroom
 from app.api.routes import (
     schedule,
     notifications,
@@ -46,6 +47,7 @@ app.include_router(wellness.router,            prefix="/api/wellness",        ta
 app.include_router(email_summarization.router,  prefix="/api/emails",          tags=["Email Summarization"])
 app.include_router(location.router,            prefix="/api/location",        tags=["Location Context"])
 app.include_router(proactive_alerts.router,    prefix="/api/alerts",          tags=["Proactive Alerts"])
+app.include_router(classroom.router, prefix="/api/classroom", tags=["Classroom"])
 
 @app.get("/health")
 async def health():

@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str = ""
     CLAUDE_MODEL: str = "claude-sonnet-4-6"
 
+    # Gemini
+    GEMINI_API_KEY: str = ""
+    
     # Bedrock (only needed if AI_PROVIDER = "bedrock")
     # Uses the same AWS credentials as DynamoDB/S3
     BEDROCK_REGION: str = "us-east-1"       # Bedrock region (Claude available here)
@@ -28,6 +31,11 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-this-in-production"
     MAX_NOTIFICATION_BATCH: int = 100
     DIGEST_HOUR: int = 8                     # 8 AM daily digest
+
+    # Google Classroom OAuth
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://YOUR_EC2_IP/api/classroom/oauth/callback"
 
     class Config:
         env_file = ".env"
