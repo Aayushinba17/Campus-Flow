@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     # ── AI Provider ───────────────────────────────────────────────
     # Set to "bedrock" to use AWS Bedrock (uses your hackathon credits)
     # Set to "anthropic" to use Anthropic API directly
-    AI_PROVIDER=gemini
+    AI_PROVIDER: str = "gemini"
 
     # Anthropic (only needed if AI_PROVIDER = "anthropic")
     #  ANTHROPIC_API_KEY: str = ""

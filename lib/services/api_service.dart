@@ -298,6 +298,9 @@ class ApiService {
   return r['results'] ?? [];
 }
 
+  Future<Map<String, dynamic>> reembedNotes() async =>
+      _post('${AppConstants.notesReembed}/${await _uid}', {});
+
   // ═══════════════════════════════════════════════════════════════════════
   //  WELLNESS
   // ═══════════════════════════════════════════════════════════════════════

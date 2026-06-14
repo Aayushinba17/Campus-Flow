@@ -65,6 +65,9 @@ async def classroom_oauth_start(user_id: str):
     Returns the Google consent URL. Flutter opens this in a WebView
     (flutter_inappwebview or url_launcher with external browser).
     """
+    if not settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=503, detail="Classroom OAuth not configured")
+
     from google_auth_oauthlib.flow import Flow
 
     flow = Flow.from_client_config(

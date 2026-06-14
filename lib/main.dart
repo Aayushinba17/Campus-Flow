@@ -20,6 +20,7 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
+    WidgetsFlutterBinding.ensureInitialized();
     final api = ApiService();
     final alertService = ProactiveAlertService();
     switch (task) {
@@ -77,10 +78,31 @@ void main() async {
   );
 
   await Workmanager().registerPeriodicTask(
-  AppConstants.taskClassroomSync,
+    AppConstants.taskClassroomSync,
     AppConstants.taskClassroomSync,
     frequency: const Duration(hours: 3),  // Google Classroom changes slowly
     constraints: Constraints(networkType: NetworkType.connected),
+    existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+  );
+
+  await Workmanager().registerPeriodicTask(
+    AppConstants.taskUsageSync,
+    AppConstants.taskUsageSync,
+    frequency: const Duration(hours: 12),
+    existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+  );
+
+  await Workmanager().registerPeriodicTask(
+    AppConstants.taskWellness,
+    AppConstants.taskWellness,
+    frequency: const Duration(minutes: 30),
+    existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+  );
+
+  await Workmanager().registerPeriodicTask(
+    AppConstants.taskSleepCheck,
+    AppConstants.taskSleepCheck,
+    frequency: const Duration(hours: 12),
     existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
   );
 

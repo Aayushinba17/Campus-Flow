@@ -97,12 +97,12 @@ class AppConstants {
   static const String taskSleepCheck     = 'sleep_check';
 
   // Google Classroom
-static const String classroomOAuthStart = '/api/classroom/oauth/start';
-static const String classroomStatus     = '/api/classroom/status';
-static const String classroomSync       = '/api/classroom/sync';
-static const String classroomSyncAnn    = '/api/classroom/sync-announcements';
-static const String classroomDisconnect = '/api/classroom/disconnect';
+  static const String classroomOAuthStart = '/api/classroom/oauth/start';
+  static const String classroomStatus     = '/api/classroom/status';
+  static const String classroomSync       = '/api/classroom/sync';
+  static const String classroomSyncAnn    = '/api/classroom/sync-announcements';
+  static const String classroomDisconnect = '/api/classroom/disconnect';
 
-// New WorkManager task
-static const String taskClassroomSync   = 'classroom_sync';
+  // New WorkManager task
+  static const String taskClassroomSync   = 'classroom_sync';
 }

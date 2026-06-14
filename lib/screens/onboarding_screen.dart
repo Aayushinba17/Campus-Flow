@@ -364,7 +364,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   if (go == true) await _addZoneAtCurrentLocation(zone);
                 }
               },
-                child: AnimatedContainer(
+              child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(

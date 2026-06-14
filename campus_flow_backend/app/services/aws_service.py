@@ -53,6 +53,11 @@ def extract_text_from_image(image_bytes: bytes) -> str:
     return "\n".join(lines)
 
 
+def detect_text_in_image(image_bytes: bytes) -> str:
+    """Alias for extract_text_from_image used by the notes router."""
+    return extract_text_from_image(image_bytes)
+
+
 def extract_text_from_s3_image(s3_key: str) -> str:
     """
     Runs Rekognition on an image already stored in S3.
