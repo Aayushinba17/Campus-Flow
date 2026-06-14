@@ -121,7 +121,7 @@ class MainActivity : FlutterActivity() {
         val startTime = cal.timeInMillis
 
         val stats = usageManager.queryUsageStats(
-            UsageStatsManager.INTERVAL_HOURLY,
+            UsageStatsManager.INTERVAL_DAILY,
             startTime, endTime
         )
 

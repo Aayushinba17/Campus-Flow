@@ -172,7 +172,4 @@ async def delete_note(user_id: str, note_id: str):
     """
     table = get_table("notes")
     table.delete_item(Key={"user_id": user_id, "note_id": note_id})
-    return {"deleted": True}
-
-
-from typing import Optional
+    return {"deleted": True}

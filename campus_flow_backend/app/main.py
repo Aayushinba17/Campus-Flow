@@ -13,6 +13,7 @@ from app.api.routes import (
     wellness,
     email_summarization,
     location,
+    proactive_alerts,
 )
 
 @asynccontextmanager
@@ -34,16 +35,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(schedule.router,       prefix="/api/schedule",       tags=["Schedule"])
-app.include_router(notifications.router,  prefix="/api/notifications",   tags=["Notifications"])
-app.include_router(routine.router,        prefix="/api/routine",         tags=["Routine"])
-app.include_router(reminders.router,      prefix="/api/reminders",       tags=["Reminders"])
-app.include_router(chat.router,           prefix="/api/chat",            tags=["Chat"])
-app.include_router(notes.router,          prefix="/api/notes",           tags=["Notes"])
-app.include_router(wellness.router,       prefix="/api/wellness",        tags=["Wellness"])
-app.include_router(email_summarization.router, prefix="/api/emails", tags=["Email Summarization"])
-app.include_router(location.router,            prefix="/api/location",      tags=["Location Context"])
+# ── Mount all routers ────────────────────────────────────────────────────────
+app.include_router(schedule.router,            prefix="/api/schedule",        tags=["Schedule"])
+app.include_router(notifications.router,       prefix="/api/notifications",   tags=["Notifications"])
+app.include_router(routine.router,             prefix="/api/routine",         tags=["Routine"])
+app.include_router(reminders.router,           prefix="/api/reminders",       tags=["Reminders"])
+app.include_router(chat.router,                prefix="/api/chat",            tags=["Chat"])
+app.include_router(notes.router,               prefix="/api/notes",           tags=["Notes"])
+app.include_router(wellness.router,            prefix="/api/wellness",        tags=["Wellness"])
+app.include_router(email_summarization.router,  prefix="/api/emails",          tags=["Email Summarization"])
+app.include_router(location.router,            prefix="/api/location",        tags=["Location Context"])
+app.include_router(proactive_alerts.router,    prefix="/api/alerts",          tags=["Proactive Alerts"])
 
 @app.get("/health")
 async def health():
     return {"status": "ok", "service": "CampusFlow API"}
+
+@app.get("/")
+def root():
+    return {"status": "Campus Flow API running"}

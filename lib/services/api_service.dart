@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import '../utils/constants.dart';
 
 class ApiService {
@@ -48,9 +49,18 @@ class ApiService {
   Future<Map<String, dynamic>> uploadTimetableImage(File imageFile) async {
     final uri = Uri.parse('$_base${AppConstants.scheduleUpload}?user_id=$_uid');
     final request = http.MultipartRequest('POST', uri);
-    request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
-    final streamed = await request.send();
+    // Explicitly set content type — Android image_picker sometimes sends
+    // application/octet-stream which the backend rejects.
+    final ext = imageFile.path.split('.').last.toLowerCase();
+    request.files.add(await http.MultipartFile.fromPath(
+      'file', imageFile.path,
+      contentType: MediaType('image', ext == 'png' ? 'png' : 'jpeg'),
+    ));
+    final streamed = await request.send().timeout(const Duration(seconds: 60));
     final response = await http.Response.fromStream(streamed);
+    if (response.statusCode != 200) {
+      throw Exception('Upload failed (${response.statusCode}): ${response.body}');
+    }
     return jsonDecode(response.body);
   }
 

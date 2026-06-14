@@ -43,6 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/build/
+/android/.gradle/
 
 # Python & Backend related
 __pycache__/
@@ -57,3 +59,5 @@ ENV/
 
 # Secrets
 *.pem
+test_anthropic.py
+test_bedrock.py

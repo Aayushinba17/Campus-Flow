@@ -140,7 +140,7 @@ async def init_dynamodb():
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
     )
-    existing = [t["TableName"] for t in client.list_tables()["TableNames"]]
+    existing = client.list_tables().get("TableNames", [])
 
     for table_def in TABLES:
         if table_def["TableName"] not in existing:

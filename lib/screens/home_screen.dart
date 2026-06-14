@@ -6,6 +6,7 @@ import 'notifications_screen.dart';
 import 'chat_screen.dart';
 import 'notes_screen.dart';
 import 'wellness_screen.dart';
+import '../models/wellness_model.dart';
 import 'routine_screen.dart';
 import 'task_board_screen.dart';
 
@@ -72,7 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
         indicatorColor: const Color(0xFFE8592B).withOpacity(0.12),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined),    selectedIcon: Icon(Icons.home),          label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.calendar_outlined), selectedIcon: Icon(Icons.calendar_today),label: 'Schedule'),
+          NavigationDestination(icon: Icon(Icons.calendar_today_outlined), selectedIcon: Icon(Icons.calendar_today),label: 'Schedule'),
           NavigationDestination(icon: Icon(Icons.notifications_outlined), selectedIcon: Icon(Icons.notifications), label: 'Updates'),
           NavigationDestination(icon: Icon(Icons.chat_bubble_outline), selectedIcon: Icon(Icons.chat_bubble), label: 'Ask'),
           NavigationDestination(icon: Icon(Icons.book_outlined),    selectedIcon: Icon(Icons.book),          label: 'Notes'),
@@ -116,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               IconButton(
                 icon: const Icon(Icons.favorite_outline, color: Color(0xFFE8592B)),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WellnessScreen())),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => WellnessScreen(ctx: WellnessContext()))),
                 tooltip: 'Wellness',
               ),
               IconButton(

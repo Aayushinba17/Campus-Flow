@@ -74,8 +74,14 @@ async def upload_timetable_image(user_id: str, file: UploadFile = File(...)):
     Step 3: Claude parses into structured JSON.
     Step 4: Save to DynamoDB.
     """
-    if file.content_type not in ["image/jpeg", "image/png", "image/jpg"]:
-        raise HTTPException(status_code=400, detail="Only JPEG/PNG images accepted")
+    # Accept common image content types. Android image_picker often sends
+    # application/octet-stream, so we also check file extension as fallback.
+    allowed_types = {"image/jpeg", "image/png", "image/jpg", "image/webp",
+                     "application/octet-stream"}
+    fname = (file.filename or "").lower()
+    has_image_ext = fname.endswith((".jpg", ".jpeg", ".png", ".webp"))
+    if file.content_type not in allowed_types and not has_image_ext:
+        raise HTTPException(status_code=400, detail=f"Only images accepted. Got: {file.content_type}")
 
     image_bytes = await file.read()
 
@@ -128,8 +134,7 @@ async def get_schedule(user_id: str):
     """
     table = get_table("schedules")
     response = table.query(
-        KeyConditionExpression="user_id = :uid",
-        ExpressionAttributeValues={":uid": user_id},
+        KeyConditionExpression=Key("user_id").eq(user_id),
     )
     items = response.get("Items", [])
     classes = [i for i in items if i.get("type") == "class"]
@@ -186,8 +191,7 @@ async def get_today_view(user_id: str):
 
     # Get all schedule items
     schedule_resp = schedule_table.query(
-        KeyConditionExpression="user_id = :uid",
-        ExpressionAttributeValues={":uid": user_id},
+        KeyConditionExpression=Key("user_id").eq(user_id),
     )
     all_items = schedule_resp.get("Items", [])
 
@@ -208,8 +212,7 @@ async def get_today_view(user_id: str):
 
     # Get tasks due today, overdue, and upcoming (next 3 days)
     task_resp = task_table.query(
-        KeyConditionExpression="user_id = :uid",
-        ExpressionAttributeValues={":uid": user_id},
+        KeyConditionExpression=Key("user_id").eq(user_id),
     )
     all_tasks = task_resp.get("Items", [])
     due_today = [
@@ -294,8 +297,7 @@ async def get_free_slot_suggestions(req: FreeSlotSuggestionRequest):
 
     # Get schedule for the target day
     sched_resp = schedule_table.query(
-        KeyConditionExpression="user_id = :uid",
-        ExpressionAttributeValues={":uid": req.user_id},
+        KeyConditionExpression=Key("user_id").eq(req.user_id),
     )
     all_items = sched_resp.get("Items", [])
     day_classes = [
@@ -320,8 +322,7 @@ async def get_free_slot_suggestions(req: FreeSlotSuggestionRequest):
 
     # Get pending tasks (not done, sorted by deadline)
     task_resp = task_table.query(
-        KeyConditionExpression="user_id = :uid",
-        ExpressionAttributeValues={":uid": req.user_id},
+        KeyConditionExpression=Key("user_id").eq(req.user_id),
     )
     pending_tasks = [
         t for t in task_resp.get("Items", [])
@@ -486,16 +487,13 @@ async def get_exam_countdown(req: ExamCountdownRequest):
     notes_table = get_table("notes")
 
     sched_resp = schedule_table.query(
-        KeyConditionExpression="user_id = :uid",
-        ExpressionAttributeValues={":uid": req.user_id},
+        KeyConditionExpression=Key("user_id").eq(req.user_id),
     )
     task_resp = task_table.query(
-        KeyConditionExpression="user_id = :uid",
-        ExpressionAttributeValues={":uid": req.user_id},
+        KeyConditionExpression=Key("user_id").eq(req.user_id),
     )
     notes_resp = notes_table.query(
-        KeyConditionExpression="user_id = :uid",
-        ExpressionAttributeValues={":uid": req.user_id},
+        KeyConditionExpression=Key("user_id").eq(req.user_id),
     )
 
     schedule = sched_resp.get("Items", [])
@@ -566,8 +564,7 @@ async def get_exam_checklist(req: ExamChecklistRequest):
     """
     notes_table = get_table("notes")
     response = notes_table.query(
-        KeyConditionExpression="user_id = :uid",
-        ExpressionAttributeValues={":uid": req.user_id},
+        KeyConditionExpression=Key("user_id").eq(req.user_id),
     )
     subject_notes = [
         n for n in response.get("Items", [])
