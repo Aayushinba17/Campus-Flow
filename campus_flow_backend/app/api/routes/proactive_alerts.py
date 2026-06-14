@@ -4,9 +4,8 @@ from typing import List, Optional
 import uuid
 from datetime import datetime, date, timedelta
 from boto3.dynamodb.conditions import Key
-
 from app.core.database import get_table
-from app.services.claude_service import get_client, get_model
+from app.services.claude_service import get_client, get_model, match_messages_to_class
 
 router = APIRouter()
 
@@ -279,18 +278,21 @@ async def get_pre_class_nudge(req: PreClassNudgeRequest):
     all_notifs = notif_resp.get("Items", [])
 
     # Find messages related to this subject (fuzzy match on subject name)
-    subject_lower = req.subject.lower()
-    relevant = [
+    # Filter for recent academic notifications to pass to the semantic matcher
+    recent_academic_notifs = [
         n for n in all_notifs
         if n.get("ingested_at", "") >= cutoff
         and n.get("category") == "academic"
-        and (
-            subject_lower in n.get("summary", "").lower()
-            or subject_lower in n.get("title", "").lower()
-            or subject_lower in n.get("body", "").lower()
-            or (req.professor and req.professor.lower() in n.get("title", "").lower())
-        )
     ]
+
+    # Use the new Semantic Vector Matching (Upgrade 1.3)
+    relevant = match_messages_to_class(
+        subject=req.subject,
+        professor=req.professor,
+        notifications=recent_academic_notifs,
+        threshold=0.35,
+        top_k=3
+    )
 
     # Build reminder with or without context
     if relevant:

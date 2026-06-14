@@ -2,16 +2,31 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 import uuid
+import json
 from datetime import datetime
 from boto3.dynamodb.conditions import Key
 
 from app.core.database import get_table
 from app.services.claude_service import process_notes, ask_notes
 from app.services.aws_service import upload_to_s3
+from app.services.embedding_service import embed, cosine_sim
+import json
+from app.services.embedding_service import embed, cosine_sim
+from boto3.dynamodb.conditions import Key
 
 router = APIRouter()
 
-
+def is_duplicate_task(task_table, user_id: str, new_title: str, threshold: float = 0.82) -> bool:
+    """True if a semantically similar task already exists for this user."""
+    new_vec = embed(new_title)
+    if not new_vec:
+        return False
+    resp = task_table.query(KeyConditionExpression=Key("user_id").eq(user_id))
+    for t in resp.get("Items", []):
+        emb = t.get("embedding")
+        if emb and cosine_sim(new_vec, json.loads(emb)) >= threshold:
+            return True
+    return False
 # ── Models ────────────────────────────────────────────────────────────────────
 
 class NoteTextRequest(BaseModel):
@@ -24,6 +39,15 @@ class NotesQARequest(BaseModel):
     user_id: str
     question: str
     subject_filter: Optional[str] = None   # Optional: limit to a specific subject
+
+class SemanticSearchRequest(BaseModel):
+    user_id: str
+    query: str
+    top_k: int = 5
+class SemanticSearchRequest(BaseModel):
+    user_id: str
+    query: str
+    top_k: int = 5
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -58,11 +82,28 @@ async def process_note_text(req: NoteTextRequest):
         "created_at": now,
         "word_count": len(req.text.split()),
     }
+    _embed_text = f"{note_item['title']} {note_item['summary']} {' '.join(note_item['key_concepts'])}"
+    note_item["embedding"] = json.dumps(embed(_embed_text))
+    # Build a semantic embedding from summary + key concepts, stored as JSON
+    # (DynamoDB rejects raw floats, so we serialize to a string)
+    embed_source = (
+        (processed.get("summary", "") or "")
+        + " "
+        + " ".join(processed.get("key_concepts", []) or [])
+    ).strip()
+    try:
+        note_item["embedding"] = json.dumps(embed(embed_source)) if embed_source else None
+    except Exception as e:
+        print(f"[Notes] Embedding failed: {e}")
+        note_item["embedding"] = None
     notes_table.put_item(Item=note_item)
 
     # Auto-add any tasks found in notes to task board
     created_tasks = []
     for task in processed.get("tasks", []):
+        title = task.get("task", "")
+        if is_duplicate_task(task_table, req.user_id, title):
+        continue    
         task_id = f"task_{uuid.uuid4().hex[:8]}"
         task_item = {
             "user_id": req.user_id,
@@ -75,6 +116,7 @@ async def process_note_text(req: NoteTextRequest):
             "source_note_id": note_id,
             "created_at": now,
         }
+        task_item["embedding"] = json.dumps(embed(task.get("task", "")))
         task_table.put_item(Item=task_item)
         created_tasks.append(task_item)
 
@@ -164,6 +206,65 @@ async def ask_about_notes(req: NotesQARequest):
         ],
     }
 
+@router.post("/semantic-search")
+async def semantic_search_notes(req: SemanticSearchRequest):
+    """
+    Finds notes by *meaning*, not keywords. Embeds the query, scores every
+    stored note embedding by cosine similarity, returns the closest matches.
+    """
+    table = get_table("notes")
+    response = table.query(
+        KeyConditionExpression=Key("user_id").eq(req.user_id),
+    )
+    notes = response.get("Items", [])
+    if not notes:
+        return {"results": [], "total": 0, "query": req.query}
+
+    query_vec = embed(req.query)
+    scored = []
+    for n in notes:
+        raw = n.get("embedding")
+        if not raw:
+            continue
+        try:
+            vec = json.loads(raw)
+        except Exception:
+            continue
+        scored.append((n, cosine_sim(query_vec, vec)))
+
+    scored.sort(key=lambda x: x[1], reverse=True)
+    results = [
+        {
+            "note_id": n.get("note_id"),
+            "title": n.get("title"),
+            "subject": n.get("subject"),
+            "summary": n.get("summary"),
+            "score": round(float(score), 3),
+        }
+        for n, score in scored[: req.top_k]
+        if score > 0.2
+    ]
+    return {"results": results, "total": len(results), "query": req.query}
+
+@router.post("/reembed/{user_id}")
+async def reembed_notes(user_id: str):
+    """One-time: compute embeddings for notes saved before semantic search existed."""
+    table = get_table("notes")
+    response = table.query(KeyConditionExpression=Key("user_id").eq(user_id))
+    updated = 0
+    for n in response.get("Items", []):
+        if n.get("embedding"):
+            continue
+        src = ((n.get("summary", "") or "") + " " + " ".join(n.get("key_concepts", []) or [])).strip()
+        if not src:
+            continue
+        table.update_item(
+            Key={"user_id": user_id, "note_id": n["note_id"]},
+            UpdateExpression="SET embedding = :e",
+            ExpressionAttributeValues={":e": json.dumps(embed(src))},
+        )
+        updated += 1
+    return {"reembedded": updated}
 
 @router.delete("/{user_id}/{note_id}")
 async def delete_note(user_id: str, note_id: str):
@@ -172,4 +273,50 @@ async def delete_note(user_id: str, note_id: str):
     """
     table = get_table("notes")
     table.delete_item(Key={"user_id": user_id, "note_id": note_id})
-    return {"deleted": True}
+    return {"deleted": True}
+
+@router.post("/semantic-search")
+async def semantic_search(req: SemanticSearchRequest):
+    """Find the most semantically relevant notes for a free-text query."""
+    table = get_table("notes")
+    resp = table.query(KeyConditionExpression=Key("user_id").eq(req.user_id))
+    notes = resp.get("Items", [])
+    qvec = embed(req.query)
+    scored = []
+    for n in notes:
+        emb = n.get("embedding")
+        if not emb:
+            continue
+        score = cosine_sim(qvec, json.loads(emb))
+        scored.append((score, n))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return {
+        "query": req.query,
+        "results": [
+            {
+                "note_id": n.get("note_id"),
+                "title": n.get("title"),
+                "subject": n.get("subject"),
+                "summary": n.get("summary"),
+                "score": round(s, 3),
+            }
+            for s, n in scored[: req.top_k]
+        ],
+    }
+
+@router.post("/reembed/{user_id}")
+async def reembed(user_id: str):
+    """Generate embeddings for any of this user's notes that lack one."""
+    table = get_table("notes")
+    resp = table.query(KeyConditionExpression=Key("user_id").eq(user_id))
+    count = 0
+    for n in resp.get("Items", []):
+        text = f"{n.get('title','')} {n.get('summary','')} {' '.join(n.get('key_concepts', []))}"
+        vec = embed(text)
+        table.update_item(
+            Key={"user_id": user_id, "note_id": n["note_id"]},
+            UpdateExpression="SET embedding = :e",
+            ExpressionAttributeValues={":e": json.dumps(vec)},
+        )
+        count += 1
+    return {"reembedded": count}

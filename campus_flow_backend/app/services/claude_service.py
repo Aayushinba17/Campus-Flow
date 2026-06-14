@@ -1,6 +1,7 @@
 import json
 import anthropic
 from app.core.config import settings
+from app.services.embedding_service import embed, cosine_sim
 
 _client = None
 
@@ -63,7 +64,7 @@ def get_client():
                 aws_region=settings.BEDROCK_REGION,
             )
         elif settings.AI_PROVIDER == "gemini":
-            _client = GeminiClient()
+           _client = GeminiClient()
         else:
             _client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
     return _client
@@ -108,6 +109,22 @@ If a field is unknown, use null. Days must be full names: Monday/Tuesday/etc."""
     # Strip any accidental markdown fences
     raw = raw.replace("```json", "").replace("```", "").strip()
     return json.loads(raw)
+
+def match_messages_to_class(subject: str, professor: str, notifications: list,
+                            threshold: float = 0.35, top_k: int = 3) -> list:
+    """Return notifications semantically related to a class (subject + professor)."""
+    query_vec = embed(f"{subject} {professor or ''}")
+    if not query_vec:
+        return []
+    scored = []
+    for n in notifications:
+        emb = n.get("embedding")
+        nvec = json.loads(emb) if emb else embed(f"{n.get('title','')} {n.get('body','')}")
+        s = cosine_sim(query_vec, nvec)
+        if s >= threshold:
+            scored.append((s, n))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [n for _, n in scored[:top_k]]
 
 
 # ── 2. Notification classifier & deadline extractor ──────────────────────────
@@ -198,10 +215,22 @@ def enhance_reminder(class_info: dict, recent_notifications: list) -> str:
     Returns a single enhanced reminder string.
     """
     client = get_client()
-    relevant = [
-        n for n in recent_notifications
-        if class_info.get("subject", "").lower() in n.get("summary", "").lower()
-    ][:5]
+    # ✅ FIXED — semantic match
+    subject = class_info.get("subject", "")
+    relevant = []
+    if subject:
+        try:
+            subject_vec = embed(subject)
+            for n in recent_notifications:
+                text = n.get("summary") or n.get("body") or n.get("title") or ""
+                if text and cosine_sim(subject_vec, embed(text)) > 0.45:
+                    relevant.append(n)
+        except Exception:
+            relevant = [
+                n for n in recent_notifications
+                if subject.lower() in n.get("summary", "").lower()
+            ]
+    relevant = relevant[:5]
 
     if not relevant:
         return f"{class_info['subject']} in 30 minutes — Room {class_info.get('room', 'TBD')}"

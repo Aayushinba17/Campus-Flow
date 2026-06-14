@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     MAX_NOTIFICATION_BATCH: int = 100
     DIGEST_HOUR: int = 8                     # 8 AM daily digest
 
+    # Google Classroom OAuth
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://YOUR_EC2_IP/api/classroom/oauth/callback"
+
     class Config:
         env_file = ".env"
         extra = "ignore"

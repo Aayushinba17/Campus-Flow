@@ -12,6 +12,7 @@ class NotesScreen extends StatefulWidget {
 class _NotesScreenState extends State<NotesScreen> {
   final _api = ApiService();
   List<dynamic> _notes = [];
+  List<dynamic> _searchResults = [];
   bool _loading = true;
   String? _selectedSubject;
 
@@ -52,10 +53,38 @@ class _NotesScreenState extends State<NotesScreen> {
   Widget _notesList() {
     // Get unique subjects for filter chips
     final subjects = _notes.map((n) => (n as Map<String, dynamic>)['subject'] ?? 'General').toSet().toList();
+    // Check if we are currently searching
+    final isSearching = _searchResults.isNotEmpty;
+    // Determine which list of notes to display
+    final displayNotes = isSearching ? _searchResults : _notes;
 
     return ListView(padding: const EdgeInsets.all(16), children: [
+      TextField(
+        decoration: InputDecoration(
+          hintText: 'Search your notes by meaning...',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: isSearching 
+            ? IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () => setState(() => _searchResults = []),
+              ) 
+            : null,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        onSubmitted: (q) async {
+          if (q.trim().isEmpty) {
+            setState(() => _searchResults = []);
+            return;
+          }
+          final res = await _api.semanticSearchNotes(q);
+          setState(() => _searchResults = res['results'] ?? []);
+        },
+      ),
+      const SizedBox(height: 16),
       // Subject filter chips
-      if (subjects.length > 1) ...[
+      if (!isSearching && subjects.length > 1) ...[
         SizedBox(
           height: 40,
           child: ListView.separated(
@@ -87,7 +116,7 @@ class _NotesScreenState extends State<NotesScreen> {
       ],
 
       // Notes grid
-      ...(_notes.map((n) {
+      ...(displayNotes.map((n) {
         final note = n as Map<String, dynamic>;
         final colors = [
           const Color(0xFFE8592B), const Color(0xFF6366F1), const Color(0xFF059669),
@@ -115,7 +144,11 @@ class _NotesScreenState extends State<NotesScreen> {
                     style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.w600)),
                 ),
                 const Spacer(),
-                Text(note['created_at']?.toString().substring(0, 10) ?? '',
+                if (isSearching && note['score'] != null)
+                  Text('Match Score: ${(note['score'] * 100).toStringAsFixed(0)}%', 
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF059669), fontWeight: FontWeight.bold))
+                else
+                  Text(note['created_at']?.toString().substring(0, 10) ?? '',
                   style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
               ]),
               const SizedBox(height: 10),

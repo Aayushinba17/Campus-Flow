@@ -4,16 +4,18 @@ from typing import List, Optional
 import uuid
 from datetime import datetime, timedelta, date
 from boto3.dynamodb.conditions import Key
-
+ 
 from app.core.database import get_table
 from app.services.claude_service import (
     classify_notifications,
     generate_morning_digest,
     build_student_context,
-    generate_missed_call_context,
     extract_deadlines_batch,
 )
-
+from app.services.orchestrator import process_event_autonomously
+import json
+from app.services.embedding_service import embed
+ 
 router = APIRouter()
 
 
@@ -58,17 +60,21 @@ class DeadlineExtractionRequest(BaseModel):
 async def ingest_notifications(batch: NotificationBatch):
     """
     Android app sends batches of notifications here every 30 minutes.
-    Claude classifies urgency, extracts deadlines, stores to DynamoDB.
+
+    Pipeline per notification:
+      1. classify_notifications() — priority scoring for the digest (kept)
+      2. process_event_autonomously() — the new orchestrator:
+         classify -> extract -> autonomous write (no confirmation tap)
+
     Max 100 per batch.
     """
     if len(batch.notifications) > 100:
         raise HTTPException(status_code=400, detail="Max 100 notifications per batch")
 
-    notif_table = get_table("notifications")
-    task_table = get_table("tasks")
+    notif_table   = get_table("notifications")
+    routine_table = get_table("routine_logs")
     now = datetime.now().isoformat()
 
-    # Prepare for Claude classification
     raw_list = [
         {
             "id": n.notification_id or uuid.uuid4().hex[:8],
@@ -82,66 +88,153 @@ async def ingest_notifications(batch: NotificationBatch):
         for n in batch.notifications
     ]
 
-    # Claude classifies the batch
+    # ── Step 1: priority classification for digest (unchanged) ─────────
     classified_result = classify_notifications(raw_list)
-    classified_map = {
-        c["id"]: c for c in classified_result.get("classified", [])
+    classified_map = {c["id"]: c for c in classified_result.get("classified", [])}
+
+    # ── Step 1b: load contact->subject map (for deadline agent context) ─
+    contact_resp = routine_table.query(
+        KeyConditionExpression=Key("user_id").eq(batch.user_id),
+    )
+    contact_subject_map = {
+        c.get("contact_name"): c.get("subject")
+        for c in contact_resp.get("Items", [])
+        if c.get("type") == "contact_subject_link"
     }
 
     saved = []
-    new_tasks = []
+    autonomous_results = []
 
     for raw in raw_list:
         cl = classified_map.get(raw["id"], {})
         notif_id = f"notif_{uuid.uuid4().hex[:12]}"
 
+        # Store the raw notification (for digest, search, silence detection)
         item = {
-            "user_id": batch.user_id,
+            "user_id":      batch.user_id,
             "notification_id": notif_id,
-            "app": raw["app"],
-            "app_package": raw["app_package"],
-            "title": raw["title"],
-            "body": raw["body"],
-            "timestamp": raw["timestamp"],
+            "app":          raw["app"],
+            "app_package":  raw.get("app_package"),
+            "title":        raw["title"],
+            "body":         raw["body"],
+            "timestamp":    raw["timestamp"],
             "contact_name": raw.get("contact_name"),
-            "ingested_at": now,
-            "category": cl.get("category", "unknown"),
-            "priority": cl.get("priority", 1),
-            "sender_type": cl.get("sender_type", "unknown"),
-            "is_deadline": cl.get("is_deadline", False),
-            "deadline_task": cl.get("deadline_task"),
-            "deadline_date": cl.get("deadline_date"),
-            "deadline_confidence": str(cl.get("deadline_confidence", 0)),
-            "summary": cl.get("summary", raw["title"]),
-            "is_read": False,
+            "ingested_at":  now,
+            "category":     cl.get("category", "unknown"),
+            "priority":     cl.get("priority", 1),
+            "sender_type":  cl.get("sender_type", "unknown"),
+            "summary":      cl.get("summary", raw["title"]),
+            "is_read":      False,
         }
+        item["embedding"] = json.dumps(embed(f"{item.get('title','')} {item.get('body','')}")) 
         notif_table.put_item(Item=item)
         saved.append(item)
 
-        # Auto-create task if high-confidence deadline found
-        if cl.get("is_deadline") and cl.get("deadline_confidence", 0) >= 0.7:
-            task_id = f"task_{uuid.uuid4().hex[:8]}"
-            task = {
-                "user_id": batch.user_id,
-                "task_id": task_id,
-                "title": cl.get("deadline_task", raw["title"]),
-                "deadline": cl.get("deadline_date"),
-                "status": "pending_confirmation",   # User must confirm in app
-                "source": "notification",
-                "source_notification_id": notif_id,
-                "source_app": raw["app"],
-                "priority": cl.get("priority", 3),
-                "created_at": now,
-            }
-            task_table.put_item(Item=task)
-            new_tasks.append(task)
+        # ── Step 2: autonomous orchestrator (THE NEW PART) ─────────────
+        # Only run the (more expensive) orchestrator on notifications that
+        # the cheap priority classifier thinks might be academic/actionable.
+        # This keeps cost down — social/promo notifications skip straight
+        # through without a second+third Claude call.
+        if cl.get("category") in ["academic", "unknown"] or cl.get("priority", 1) >= 3:
+            result = process_event_autonomously(
+                user_id=batch.user_id,
+                raw_event=raw,
+                contact_subject_map=contact_subject_map,
+            )
+            result["notification_id"] = notif_id
+            result["source_app"] = raw["app"]
+            autonomous_results.append(result)
+
+    # ── Build response summary ───────────────────────────────────────
+    tasks_created   = [r for r in autonomous_results if r.get("action") == "task_created"]
+    events_created  = [r for r in autonomous_results if r.get("action") == "event_created"]
+    plans_logged    = [r for r in autonomous_results if r.get("action") == "plan_logged"]
+    duplicates      = [r for r in autonomous_results if r.get("action") == "duplicate_skipped"]
 
     return {
         "saved": len(saved),
-        "deadlines_extracted": len(new_tasks),
         "urgent_count": classified_result.get("urgent_count", 0),
-        "new_tasks_pending_confirmation": new_tasks,
+        "autonomous_actions": {
+            "tasks_created":   len(tasks_created),
+            "events_created":  len(events_created),
+            "plans_noted":     len(plans_logged),
+            "duplicates_skipped": len(duplicates),
+        },
+        "tasks":  tasks_created,
+        "events": events_created,
+        # NOTE: no "new_tasks_pending_confirmation" key anymore —
+        # everything above is already written. The activity feed
+        # (GET /api/notifications/activity-feed/{user_id}, see below)
+        # is where the user reviews-and-undoes if needed.
     }
+
+
+# ── NEW endpoint: activity feed ─────────────────────────────────────────────
+
+@router.get("/activity-feed/{user_id}")
+async def get_activity_feed(user_id: str, limit: int = 20, unread_only: bool = False):
+    """
+    The passive 'what I did automatically' feed from the architecture
+    diagram. Replaces the old 'pending confirmation' list.
+
+    Each entry has undoable=true/false and undone=true/false so the
+    Flutter UI can render an Undo button where applicable.
+    """
+    table = get_table("routine_logs")
+    response = table.query(
+        KeyConditionExpression=Key("user_id").eq(user_id),
+    )
+    entries = [
+        e for e in response.get("Items", [])
+        if e.get("type") == "activity_feed"
+    ]
+    if unread_only:
+        entries = [e for e in entries if not e.get("seen", False)]
+
+    entries.sort(key=lambda x: x.get("logged_at", ""), reverse=True)
+    return {"activity": entries[:limit], "total": len(entries)}
+
+
+@router.post("/activity-feed/{user_id}/undo/{log_id}")
+async def undo_activity(user_id: str, log_id: str):
+    """
+    Undoes an autonomous write. Finds the activity entry, then deletes
+    the referenced task/event, then marks the activity as undone.
+    """
+    activity_table = get_table("routine_logs")
+    task_table     = get_table("tasks")
+    schedule_table = get_table("schedules")
+
+    response = activity_table.query(
+        KeyConditionExpression=Key("user_id").eq(user_id),
+    )
+    entry = next((
+        e for e in response.get("Items", [])
+        if e.get("log_id") == log_id and e.get("type") == "activity_feed"
+    ), None)
+
+    if not entry:
+        raise HTTPException(status_code=404, detail="Activity entry not found")
+    if not entry.get("undoable"):
+        raise HTTPException(status_code=400, detail="This action cannot be undone")
+    if entry.get("undone"):
+        return {"already_undone": True}
+
+    ref_kind = entry.get("ref_kind")
+    ref_id   = entry.get("ref_id")
+
+    if ref_kind == "task" and ref_id:
+        task_table.delete_item(Key={"user_id": user_id, "task_id": ref_id})
+    elif ref_kind == "event" and ref_id:
+        schedule_table.delete_item(Key={"user_id": user_id, "item_id": ref_id})
+
+    activity_table.update_item(
+        Key={"user_id": user_id, "log_id": log_id},
+        UpdateExpression="SET undone = :u",
+        ExpressionAttributeValues={":u": True},
+    )
+
+    return {"undone": True, "ref_kind": ref_kind, "ref_id": ref_id}
 
 
 @router.post("/digest")

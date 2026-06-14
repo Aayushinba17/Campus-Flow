@@ -1,6 +1,6 @@
 class AppConstants {
   // ── Replace with your EC2 public IP ──────────────────────────────────
-  static const String baseUrl = 'http://3.80.224.136:8000';
+  static const String baseUrl = 'http://3.80.224.136:8001;
 
   // ── For demo/testing without EC2 ─────────────────────────────────────
   // static const String baseUrl = 'http://10.0.2.2:8000'; // Android emulator localhost
@@ -21,6 +21,8 @@ class AppConstants {
   static const String scheduleDismissBk  = '/api/schedule/dismiss-booking';
   static const String scheduleExamCount  = '/api/schedule/exam-countdown';
   static const String scheduleChecklist  = '/api/schedule/exam-checklist';
+  static const String notesSemanticSearch = '/api/notes/semantic-search';
+  static const String notesReembed        = '/api/notes/reembed';
 
   // Notifications
   static const String notifIngest        = '/api/notifications/ingest';
@@ -65,6 +67,7 @@ class AppConstants {
   static const String notesList          = '/api/notes/list';
   static const String notesAsk           = '/api/notes/ask';
   static const String notesDelete        = '/api/notes';
+  static const String notesSemanticSearch = '/api/notes/semantic-search';
 
   // Wellness
   static const String wellnessPomodoro   = '/api/wellness/pomodoro';

@@ -8,3 +8,8 @@ botocore
 python-multipart
 httpx
 google-generativeai
+google-auth
+google-auth-oauthlib
+google-api-python-client
+sentence-transformers==2.7.0
+numpy<2

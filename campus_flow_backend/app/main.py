@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.database import init_dynamodb
+from app.api.routes import classroom
+from app.services.embedding_service import get_model as load_embedding_model
 from app.api.routes import (
     schedule,
     notifications,
@@ -18,9 +20,18 @@ from app.api.routes import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 1. Initialize database
     await init_dynamodb()
+    
+    # 2. Warm up the embedding model so the first request isn't slow
+    try:
+        load_embedding_model()
+        print("[Embeddings] Model loaded and ready")
+    except Exception as e:
+        print(f"[Embeddings] Warm-up skipped: {e}")
+        
     yield
-
+    
 app = FastAPI(
     title="CampusFlow API",
     version="1.0.0",
@@ -46,6 +57,7 @@ app.include_router(wellness.router,            prefix="/api/wellness",        ta
 app.include_router(email_summarization.router,  prefix="/api/emails",          tags=["Email Summarization"])
 app.include_router(location.router,            prefix="/api/location",        tags=["Location Context"])
 app.include_router(proactive_alerts.router,    prefix="/api/alerts",          tags=["Proactive Alerts"])
+app.include_router(classroom.router, prefix="/api/classroom", tags=["Classroom"])
 
 @app.get("/health")
 async def health():

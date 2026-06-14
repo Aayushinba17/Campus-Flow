@@ -32,6 +32,13 @@ class ApiService {
     return jsonDecode(r.body);
   }
 
+  Future<Map<String, dynamic>> semanticSearchNotes(String query, {int topK = 5}) async =>
+    _post(AppConstants.notesSemanticSearch, {
+      'user_id': _uid,
+      'query': query,
+      'top_k': topK,
+    });
+
   // ── Health check ──────────────────────────────────────────────────────
 
   Future<bool> isServerReachable() async {
@@ -267,6 +274,13 @@ class ApiService {
       Uri.parse('$_base${AppConstants.notesDelete}/$_uid/$noteId'),
       headers: _headers,
     );
+  }
+  
+  Future<List<dynamic>> semanticSearchNotes(String query, {int topK = 5}) async {
+    final r = await _post(AppConstants.notesSemanticSearch, {
+      'user_id': _uid, 'query': query, 'top_k': topK,
+    });
+    return r['results'] ?? [];
   }
 
   // ═══════════════════════════════════════════════════════════════════════

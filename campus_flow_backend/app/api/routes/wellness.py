@@ -483,3 +483,58 @@ async def get_sleep_reminder(user_id: str):
         "reminder_text": f"You have {first_class.get('subject')} at {first_class_time} tomorrow. Sleep well!",
         "first_class": first_class,
     }
+
+
+
+
+
+
+
+
+
+
+    # ──────────────────────────────────────────────────────────────────────────
+# FIX for app/api/routes/personal_life.py
+#
+# The get_wellness_status function had a bug: it referenced `req` before
+# it was defined (copy-paste leftover). Replace the entire function with
+# this corrected version. Everything else in that file is unchanged.
+# ──────────────────────────────────────────────────────────────────────────
+
+@router.get("/status/{user_id}")
+async def get_wellness_status(user_id: str):
+    """
+    Single endpoint Flutter calls on app open / home screen refresh.
+    Returns current state of all wellness indicators without triggering reminders.
+    """
+    wellness_table = get_table("wellness")
+    today_str = date.today().isoformat()
+
+    well_resp = wellness_table.query(
+        KeyConditionExpression=Key("user_id").eq(user_id),
+    )
+    all_today = [w for w in well_resp.get("Items", []) if w.get("date", "").startswith(today_str)]
+
+    water_count     = len([w for w in all_today if w.get("type") == "water_reminder_sent"])
+    meals_had       = [w.get("meal") for w in all_today if "meal_reminder" in w.get("type", "")]
+    sleep_sent      = any(w.get("type") == "sleep_reminder_sent" for w in all_today)
+    focus_sessions  = [w for w in all_today if w.get("type") in ["pomodoro", "focus_session"] and w.get("completed")]
+    study_hours_today = round(sum(int(f.get("actual_minutes", 0)) for f in focus_sessions) / 60, 1)
+
+    now = datetime.now()
+    hour = now.hour
+
+    return {
+        "today": {
+            "water_reminders":      water_count,
+            "meals_reminded":       meals_had,
+            "sleep_reminder_sent":  sleep_sent,
+            "study_hours":          study_hours_today,
+            "focus_sessions":       len(focus_sessions),
+        },
+        "nudges": {
+            "water_due":   water_count < (hour - 7) // 2 and 7 <= hour <= 22,
+            "sleep_due":   not sleep_sent and hour >= 22,
+            "meal_due":    len(meals_had) < (1 if hour < 13 else 2 if hour < 19 else 3),
+        },
+    }
