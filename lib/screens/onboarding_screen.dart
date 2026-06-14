@@ -4,6 +4,9 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../services/api_service.dart';
 import 'home_screen.dart';
+import 'package:geolocator/geolocator.dart';
+import '../services/user_prefs.dart';
+import '../services/user_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -23,10 +26,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _nameController = TextEditingController(text: 'Student');
   final List<Map<String, dynamic>> _zones = [];
   final _zoneTypes = [
-    {'name': 'home', 'icon': Icons.home_outlined, 'label': 'Home / PG', 'color': Color(0xFF4CAF50)},
-    {'name': 'campus', 'icon': Icons.school_outlined, 'label': 'Main Campus', 'color': Color(0xFFE8592B)},
-    {'name': 'library', 'icon': Icons.local_library_outlined, 'label': 'Library', 'color': Color(0xFF2196F3)},
-    {'name': 'hostel', 'icon': Icons.apartment_outlined, 'label': 'Hostel', 'color': Color(0xFF9C27B0)},
+    {'name': 'home', 'icon': Icons.home_outlined, 'label': 'Home / PG', 'color': const Color(0xFF4CAF50)},
+    {'name': 'campus', 'icon': Icons.school_outlined, 'label': 'Main Campus', 'color': const Color(0xFFE8592B)},
+    {'name': 'library', 'icon': Icons.local_library_outlined, 'label': 'Library', 'color': const Color(0xFF2196F3)},
+    {'name': 'hostel', 'icon': Icons.apartment_outlined, 'label': 'Hostel', 'color': const Color(0xFF9C27B0)},
   ];
 
   final _pages = [
@@ -34,25 +37,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       'title': 'Welcome to\nCampusFlow',
       'subtitle': 'Your AI-powered campus life assistant',
       'icon': Icons.auto_awesome,
-      'gradient': [Color(0xFFE8592B), Color(0xFFFF8C5A)],
+      'gradient': [const Color(0xFFE8592B), const Color(0xFFFF8C5A)],
     },
     {
       'title': 'Upload Your\nTimetable',
       'subtitle': 'Take a photo of your class schedule — AI extracts everything',
       'icon': Icons.calendar_today_outlined,
-      'gradient': [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+      'gradient': [const Color(0xFF6366F1), const Color(0xFF8B5CF6)],
     },
     {
       'title': 'Mark Your\nLocations',
       'subtitle': 'So we can adjust reminders based on where you are',
       'icon': Icons.location_on_outlined,
-      'gradient': [Color(0xFF059669), Color(0xFF34D399)],
+      'gradient': [const Color(0xFF059669), const Color(0xFF34D399)],
     },
     {
       'title': 'You\'re All Set!',
       'subtitle': 'CampusFlow will now manage your student life intelligently',
       'icon': Icons.rocket_launch_outlined,
-      'gradient': [Color(0xFFE8592B), Color(0xFFFF6B6B)],
+      'gradient': [const Color(0xFFE8592B), const Color(0xFFFF6B6B)],
     },
   ];
 
@@ -70,7 +73,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  (_pages[_currentPage]['gradient'] as List<Color>)[0].withOpacity(0.15),
+                  (_pages[_currentPage]['gradient'] as List<Color>)[0].withValues(alpha: 0.15),
                   const Color(0xFF0F0F1A),
                 ],
               ),
@@ -150,7 +153,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             borderRadius: BorderRadius.circular(30),
                             boxShadow: [
                               BoxShadow(
-                                color: (_pages[_currentPage]['gradient'] as List<Color>)[0].withOpacity(0.4),
+                                color: (_pages[_currentPage]['gradient'] as List<Color>)[0].withValues(alpha: 0.4),
                                 blurRadius: 20, offset: const Offset(0, 8),
                               ),
                             ],
@@ -193,7 +196,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             decoration: BoxDecoration(
               gradient: LinearGradient(colors: colors),
               shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: colors[0].withOpacity(0.4), blurRadius: 40)],
+              boxShadow: [BoxShadow(color: colors[0].withValues(alpha: 0.4), blurRadius: 40)],
             ),
             child: Icon(page['icon'] as IconData, color: Colors.white, size: 44),
           ),
@@ -204,14 +207,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const SizedBox(height: 16),
           Text(page['subtitle'] as String,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 16, height: 1.5)),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 16, height: 1.5)),
           if (index == 0) ...[
             const SizedBox(height: 40),
             // Name input
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
+                color: Colors.white.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white12),
               ),
@@ -220,9 +223,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 style: const TextStyle(color: Colors.white, fontSize: 16),
                 decoration: InputDecoration(
                   hintText: 'Enter your name',
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+                  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                   border: InputBorder.none,
-                  prefixIcon: Icon(Icons.person_outline, color: Colors.white.withOpacity(0.4)),
+                  prefixIcon: Icon(Icons.person_outline, color: Colors.white.withValues(alpha: 0.4)),
                 ),
               ),
             ),
@@ -244,7 +247,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             decoration: BoxDecoration(
               gradient: LinearGradient(colors: colors),
               shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: colors[0].withOpacity(0.4), blurRadius: 40)],
+              boxShadow: [BoxShadow(color: colors[0].withValues(alpha: 0.4), blurRadius: 40)],
             ),
             child: const Icon(Icons.calendar_today_outlined, color: Colors.white, size: 44),
           ),
@@ -253,7 +256,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Text('AI will extract your classes, rooms & professors',
-            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14)),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14)),
           const SizedBox(height: 40),
 
           // Upload buttons
@@ -270,15 +273,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Column(children: [
               CircularProgressIndicator(color: colors[0]),
               const SizedBox(height: 12),
-              Text(_uploadStatus, style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13)),
+              Text(_uploadStatus, style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13)),
             ])
           else if (_uploadStatus.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
+                color: Colors.green.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green.withOpacity(0.3)),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
               ),
               child: Row(children: [
                 const Icon(Icons.check_circle, color: Colors.green, size: 20),
@@ -289,7 +292,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           const SizedBox(height: 16),
           Text('You can also add classes manually later',
-            style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 12)),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12)),
         ],
       ),
     );
@@ -301,7 +304,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Container(
         width: 130, height: 130,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.06),
+          color: Colors.white.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.white12),
         ),
@@ -311,7 +314,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Container(
               width: 50, height: 50,
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: colors.map((c) => c.withOpacity(0.2)).toList()),
+                gradient: LinearGradient(colors: colors.map((c) => c.withValues(alpha: 0.2)).toList()),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: colors[0], size: 24),
@@ -335,38 +338,42 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const SizedBox(height: 8),
           Text('Tap zones you visit regularly — reminders adjust automatically',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14)),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14)),
           const SizedBox(height: 32),
           ...(_zoneTypes.map((zone) {
             final isAdded = _zones.any((z) => z['zone_name'] == zone['name']);
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    if (isAdded) {
-                      _zones.removeWhere((z) => z['zone_name'] == zone['name']);
-                    } else {
-                      _zones.add({
-                        'zone_name': zone['name'],
-                        'label': zone['label'],
-                        'latitude': 28.6139, // Default Delhi coords — user updates via app
-                        'longitude': 77.2090,
-                        'radius_meters': 200,
-                      });
-                    }
-                  });
-                },
+                onTap: () async {
+                  if (isAdded) {
+                    setState(() => _zones.removeWhere((z) => z['zone_name'] == zone['name']));
+                  } else {
+                    // Tell the user to physically be at the zone
+                    final go = await showDialog<bool>(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                      title: Text('Mark "${zone['label']}"'),
+                      content: const Text('Are you currently at this location? We\'ll use your GPS to remember it.'),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Not now')),
+                        TextButton(onPressed: () => Navigator.pop(context, true),  child: const Text('Yes, I\'m here')),
+                      ],
+                    ),
+                  );
+                  if (go == true) await _addZoneAtCurrentLocation(zone);
+                }
+              },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: isAdded
-                        ? (zone['color'] as Color).withOpacity(0.15)
-                        : Colors.white.withOpacity(0.05),
+                        ? (zone['color'] as Color).withValues(alpha: 0.15)
+                        : Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isAdded ? (zone['color'] as Color).withOpacity(0.5) : Colors.white12,
+                      color: isAdded ? (zone['color'] as Color).withValues(alpha: 0.5) : Colors.white12,
                       width: isAdded ? 2 : 1,
                     ),
                   ),
@@ -374,7 +381,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     Container(
                       width: 44, height: 44,
                       decoration: BoxDecoration(
-                        color: (zone['color'] as Color).withOpacity(isAdded ? 0.2 : 0.1),
+                        color: (zone['color'] as Color).withValues(alpha: isAdded ? 0.2 : 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(zone['icon'] as IconData, color: zone['color'] as Color, size: 22),
@@ -400,7 +407,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           })),
           const SizedBox(height: 8),
           Text('${_zones.length} zone${_zones.length != 1 ? 's' : ''} selected',
-            style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12)),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12)),
         ],
       ),
     );
@@ -423,17 +430,61 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _finishOnboarding() async {
-    // Save zones if any selected
-    if (_zones.isNotEmpty) {
-      try { await _api.saveOnboardingZones(_zones); } catch (_) {}
-    }
+  // Ensure user_id exists (generates on first call)
+  await UserService.getUserId();
+  // Save name via UserService
+  await UserService.setUserName(_nameController.text.trim());
 
-    // Save name
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('onboarding_complete', true);
-    await prefs.setString('user_name', _nameController.text.trim());
-
-    if (!mounted) return;
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+  if (_zones.isNotEmpty) {
+    try { await _api.saveOnboardingZones(_zones); } catch (_) {}
   }
+
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('onboarding_complete', true);
+
+  if (!mounted) return;
+  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+  }
+
+
+// ...
+
+Future<void> _addZoneAtCurrentLocation(Map<String, dynamic> zone) async {
+  // Ask permission
+  var perm = await Geolocator.checkPermission();
+  if (perm == LocationPermission.denied) {
+    perm = await Geolocator.requestPermission();
+  }
+  if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Location permission needed to mark this zone')),
+      );
+    }
+    return;
+  }
+
+  // Get current position
+  try {
+    final pos = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    final radius = await UserPrefs.getZoneRadius();
+    setState(() {
+      _zones.add({
+        'zone_name': zone['name'],
+        'label': zone['label'],
+        'latitude': pos.latitude,
+        'longitude': pos.longitude,
+        'radius_meters': radius,
+      });
+    });
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not get location: $e')),
+      );
+    }
+  }
+}
 }

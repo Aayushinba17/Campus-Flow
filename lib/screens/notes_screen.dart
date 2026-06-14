@@ -79,7 +79,7 @@ class _NotesScreenState extends State<NotesScreen> {
             return;
           }
           final res = await _api.semanticSearchNotes(q);
-          setState(() => _searchResults = res['results'] ?? []);
+          setState(() => _searchResults = res);
         },
       ),
       const SizedBox(height: 16),
@@ -97,7 +97,7 @@ class _NotesScreenState extends State<NotesScreen> {
                   label: const Text('All', style: TextStyle(fontSize: 12)),
                   selected: _selectedSubject == null,
                   onSelected: (_) { setState(() => _selectedSubject = null); _loadNotes(); },
-                  selectedColor: const Color(0xFFE8592B).withOpacity(0.15),
+                  selectedColor: const Color(0xFFE8592B).withValues(alpha: 0.15),
                   checkmarkColor: const Color(0xFFE8592B),
                 );
               }
@@ -106,7 +106,7 @@ class _NotesScreenState extends State<NotesScreen> {
                 label: Text(subject, style: const TextStyle(fontSize: 12)),
                 selected: _selectedSubject == subject,
                 onSelected: (_) { setState(() => _selectedSubject = subject); _loadNotes(); },
-                selectedColor: const Color(0xFFE8592B).withOpacity(0.15),
+                selectedColor: const Color(0xFFE8592B).withValues(alpha: 0.15),
                 checkmarkColor: const Color(0xFFE8592B),
               );
             },
@@ -139,7 +139,7 @@ class _NotesScreenState extends State<NotesScreen> {
               Row(children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: accent.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                  decoration: BoxDecoration(color: accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
                   child: Text(note['subject'] ?? 'General',
                     style: TextStyle(color: accent, fontSize: 11, fontWeight: FontWeight.w600)),
                 ),
@@ -220,7 +220,7 @@ class _NotesScreenState extends State<NotesScreen> {
               Wrap(spacing: 8, runSpacing: 8, children:
                 (note['key_concepts'] as List).map((c) => Chip(
                   label: Text(c.toString(), style: const TextStyle(fontSize: 12)),
-                  backgroundColor: const Color(0xFFE8592B).withOpacity(0.08),
+                  backgroundColor: const Color(0xFFE8592B).withValues(alpha: 0.08),
                 )).toList(),
               ),
             ],
@@ -265,29 +265,64 @@ class _NotesScreenState extends State<NotesScreen> {
                 border: OutlineInputBorder(), alignLabelWithHint: true,
               )),
             const SizedBox(height: 16),
-            SizedBox(width: double.infinity, child: ElevatedButton.icon(
-              onPressed: () async {
-                if (textCtrl.text.isNotEmpty) {
-                  Navigator.pop(context);
-                  _showProcessingDialog();
-                  try {
-                    await _api.processNoteText(textCtrl.text,
-                      subject: subjectCtrl.text.isNotEmpty ? subjectCtrl.text : null);
-                    if (mounted) Navigator.pop(context);
-                    _loadNotes();
-                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Note processed by AI! ✨'), backgroundColor: Color(0xFF059669)));
-                  } catch (e) {
-                    if (mounted) Navigator.pop(context);
-                  }
-                }
-              },
-              icon: const Icon(Icons.auto_awesome),
-              label: const Text('Process with AI'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE8592B), foregroundColor: Colors.white,
-                padding: const EdgeInsets.all(14)),
-            )),
+            Row(
+              children: [
+                // ── NEW UPLOAD BUTTON ──
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      // TODO: Add your file picker logic here (e.g., using file_picker package)
+                      // File selectedFile = await pickFile();
+                      // if (selectedFile != null) {
+                      //   Navigator.pop(context);
+                      //   _showProcessingDialog();
+                      //   await _api.processNoteFile(selectedFile, subject: subjectCtrl.text);
+                      //   if (mounted) Navigator.pop(context);
+                      //   _loadNotes();
+                      // }
+                    },
+                    icon: const Icon(Icons.upload_file, color: Color(0xFFE8592B)),
+                    label: const Text('Upload File', style: TextStyle(color: Color(0xFFE8592B))),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFFE8592B)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                
+                // ── EXISTING TEXT PROCESS BUTTON ──
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      if (textCtrl.text.isNotEmpty) {
+                        Navigator.pop(context);
+                        _showProcessingDialog();
+                        try {
+                          await _api.processNoteText(textCtrl.text,
+                            subject: subjectCtrl.text.isNotEmpty ? subjectCtrl.text : null);
+                          if (mounted) Navigator.pop(context);
+                          _loadNotes();
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Note processed by AI! ✨'), backgroundColor: Color(0xFF059669)));
+                          }
+                        } catch (e) {
+                          if (mounted) Navigator.pop(context);
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.auto_awesome),
+                    label: const Text('Process Text'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE8592B), 
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ]),
         ),
       ),
@@ -348,7 +383,7 @@ class _NotesScreenState extends State<NotesScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8592B).withOpacity(0.05),
+                    color: const Color(0xFFE8592B).withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: SingleChildScrollView(child: MarkdownBody(data: answer!)),

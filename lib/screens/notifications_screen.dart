@@ -200,14 +200,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: priority >= 4 ? Border.all(color: Colors.red.withOpacity(0.3)) : null,
+        border: priority >= 4 ? Border.all(color: Colors.red.withValues(alpha: 0.3)) : null,
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         leading: Container(
           width: 40, height: 40,
           decoration: BoxDecoration(
-            color: (colors[priority] ?? Colors.grey).withOpacity(0.1),
+            color: (colors[priority] ?? Colors.grey).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(appIcons[app] ?? Icons.notifications, color: colors[priority], size: 20),
@@ -245,15 +245,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
-            border: isToday ? Border.all(color: Colors.red.withOpacity(0.4), width: 2) : null,
+            border: isToday ? Border.all(color: Colors.red.withValues(alpha: 0.4), width: 2) : null,
           ),
           child: Row(children: [
             Container(
               width: 44, height: 44,
               decoration: BoxDecoration(
-                color: isToday ? Colors.red.withOpacity(0.1)
-                    : isTomorrow ? Colors.orange.withOpacity(0.1)
-                    : const Color(0xFFE8592B).withOpacity(0.1),
+                color: isToday ? Colors.red.withValues(alpha: 0.1)
+                    : isTomorrow ? Colors.orange.withValues(alpha: 0.1)
+                    : const Color(0xFFE8592B).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(Icons.flag, size: 20,
@@ -305,7 +305,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
             Row(children: [
               Container(
                 width: 40, height: 40,
-                decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
                 child: const Icon(Icons.phone_missed, color: Colors.red, size: 20),
               ),
               const SizedBox(width: 12),
@@ -320,7 +320,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8592B).withOpacity(0.05),
+                  color: const Color(0xFFE8592B).withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(children: [
@@ -387,7 +387,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
               child: Row(children: [
                 Container(
                   width: 36, height: 36,
-                  decoration: BoxDecoration(color: const Color(0xFF6366F1).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(color: const Color(0xFF6366F1).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                   child: const Icon(Icons.reply, color: Color(0xFF6366F1), size: 18),
                 ),
                 const SizedBox(width: 10),

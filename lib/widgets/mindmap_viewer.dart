@@ -36,7 +36,7 @@ class MindmapViewer extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: const LinearGradient(colors: [Color(0xFFE8592B), Color(0xFFFF8C5A)]),
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: const Color(0xFFE8592B).withOpacity(0.3), blurRadius: 12)],
+            boxShadow: [BoxShadow(color: const Color(0xFFE8592B).withValues(alpha: 0.3), blurRadius: 12)],
           ),
           child: Text(subject, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
         )),
@@ -55,9 +55,9 @@ class MindmapViewer extends StatelessWidget {
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.08),
+                color: color.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: color.withOpacity(0.3)),
+                border: Border.all(color: color.withValues(alpha: 0.3)),
               ),
               child: Text(entry.value.toString(),
                 style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w500)),

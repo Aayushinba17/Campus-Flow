@@ -31,14 +31,14 @@ class NotificationTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: priority >= 4 ? Border.all(color: Colors.red.withOpacity(0.3)) : null,
+          border: priority >= 4 ? Border.all(color: Colors.red.withValues(alpha: 0.3)) : null,
         ),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // App icon
           Container(
             width: 42, height: 42,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(11)),
+              color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(11)),
             child: Icon(appIcons[app] ?? Icons.notifications, color: color, size: 20),
           ),
           const SizedBox(width: 12),
@@ -70,7 +70,7 @@ class NotificationTile extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(4)),
+                    color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(4)),
                   child: Text(category, style: TextStyle(fontSize: 10, color: color)),
                 ),
             ]),

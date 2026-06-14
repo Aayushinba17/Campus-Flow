@@ -108,7 +108,7 @@ class _RoutineScreenState extends State<RoutineScreen> {
         Container(
           width: 50, height: 50,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(14)),
+            color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(14)),
           child: Icon(activityIcons[activity] ?? Icons.phone_android, color: Colors.white, size: 24),
         ),
         const SizedBox(width: 14),
@@ -117,13 +117,13 @@ class _RoutineScreenState extends State<RoutineScreen> {
           Text(activity.toString().replaceAll('_', ' ').toUpperCase(),
             style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
           if (ctx['since'] != null)
-            Text('Since ${ctx['since']}', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+            Text('Since ${ctx['since']}', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12)),
         ])),
         if (ctx['duration_minutes'] != null)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+              color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(10)),
             child: Text('${ctx['duration_minutes']}m',
               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
@@ -260,7 +260,7 @@ class _RoutineScreenState extends State<RoutineScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFF6366F1).withOpacity(0.1),
+              color: const Color(0xFF6366F1).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text('Avg: ${avgHours}h', style: const TextStyle(
@@ -297,7 +297,7 @@ class _RoutineScreenState extends State<RoutineScreen> {
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                  decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
                   child: Text(quality, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600)),
                 ),
               ]),
@@ -317,7 +317,7 @@ class _RoutineScreenState extends State<RoutineScreen> {
           child: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFF6366F1).withOpacity(0.05),
+              color: const Color(0xFF6366F1).withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -339,9 +339,9 @@ class _RoutineScreenState extends State<RoutineScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8592B).withOpacity(0.05),
+        color: const Color(0xFFE8592B).withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE8592B).withOpacity(0.2)),
+        border: Border.all(color: const Color(0xFFE8592B).withValues(alpha: 0.2)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Row(children: [
@@ -381,8 +381,10 @@ class _RoutineScreenState extends State<RoutineScreen> {
       setState(() { _insights = result; _insightsLoading = false; });
     } catch (e) {
       setState(() => _insightsLoading = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+      }
     }
   }
 
@@ -443,9 +445,11 @@ class _RoutineScreenState extends State<RoutineScreen> {
                 final wakeStr = '${wakeTime.hour.toString().padLeft(2, '0')}:${wakeTime.minute.toString().padLeft(2, '0')}';
                 final today = DateTime.now().toIso8601String().substring(0, 10);
                 await _api.logSleepEvent(bedStr, wakeStr, today);
-                if (mounted) { Navigator.pop(ctx); _loadData(); }
-                if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                if (ctx.mounted) { Navigator.pop(ctx); _loadData(); }
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Sleep logged! 😴'), backgroundColor: Color(0xFF059669)));
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF6366F1), foregroundColor: Colors.white,

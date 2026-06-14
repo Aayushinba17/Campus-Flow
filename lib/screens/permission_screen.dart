@@ -79,7 +79,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
               const Text('Permissions', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               Text('CampusFlow needs a few permissions to work its magic',
-                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14)),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14)),
               const SizedBox(height: 8),
 
               // Progress
@@ -113,11 +113,11 @@ class _PermissionScreenState extends State<PermissionScreen> {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: isGranted
-                              ? p.color.withOpacity(0.1)
-                              : Colors.white.withOpacity(0.05),
+                              ? p.color.withValues(alpha: 0.1)
+                              : Colors.white.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: isGranted ? p.color.withOpacity(0.4) : Colors.white12,
+                            color: isGranted ? p.color.withValues(alpha: 0.4) : Colors.white12,
                             width: isGranted ? 1.5 : 1,
                           ),
                         ),
@@ -125,7 +125,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
                           Container(
                             width: 48, height: 48,
                             decoration: BoxDecoration(
-                              color: p.color.withOpacity(isGranted ? 0.2 : 0.1),
+                              color: p.color.withValues(alpha: isGranted ? 0.2 : 0.1),
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: Icon(p.icon, color: p.color, size: 24),
@@ -137,7 +137,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
                               fontWeight: FontWeight.w600, fontSize: 15)),
                             const SizedBox(height: 2),
                             Text(p.subtitle, style: TextStyle(
-                              color: Colors.white.withOpacity(0.4), fontSize: 12)),
+                              color: Colors.white.withValues(alpha: 0.4), fontSize: 12)),
                           ])),
                           AnimatedSwitcher(
                             duration: const Duration(milliseconds: 300),
@@ -147,7 +147,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
                                     key: const ValueKey('grant'),
                                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: p.color.withOpacity(0.15),
+                                      color: p.color.withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text('Grant', style: TextStyle(
@@ -171,7 +171,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
                     gradient: const LinearGradient(colors: [Color(0xFFE8592B), Color(0xFFFF8C5A)]),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
-                      BoxShadow(color: const Color(0xFFE8592B).withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 8)),
+                      BoxShadow(color: const Color(0xFFE8592B).withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 8)),
                     ],
                   ),
                   child: const Center(child: Text('Continue',
@@ -180,7 +180,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
               ),
               const SizedBox(height: 8),
               Center(child: Text('You can change these in Settings anytime',
-                style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 12))),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12))),
             ],
           ),
         ),
@@ -196,7 +196,7 @@ class _PermissionScreenState extends State<PermissionScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${item.title} permanently denied. Open settings to enable.'),
-          action: SnackBarAction(label: 'Settings', onPressed: openAppSettings),
+          action: const SnackBarAction(label: 'Settings', onPressed: openAppSettings),
         ),
       );
     }

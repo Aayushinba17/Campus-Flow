@@ -16,7 +16,7 @@ class DigestCard extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: const Color(0xFFE8592B).withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 8)),
+          BoxShadow(color: const Color(0xFFE8592B).withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 8)),
         ],
       ),
       padding: const EdgeInsets.all(20),
@@ -61,7 +61,7 @@ class DigestCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(children: [

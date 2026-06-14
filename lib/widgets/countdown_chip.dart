@@ -18,15 +18,15 @@ class CountdownChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: chipColor.withOpacity(0.1),
+        color: chipColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: chipColor.withOpacity(0.3)),
+        border: Border.all(color: chipColor.withValues(alpha: 0.3)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Container(
           width: 32, height: 32,
           decoration: BoxDecoration(
-            color: chipColor.withOpacity(0.2),
+            color: chipColor.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Center(child: Text(
@@ -39,7 +39,7 @@ class CountdownChip extends StatelessWidget {
           Text(daysLeft == 1 ? 'day left' : 'days left',
             style: TextStyle(color: chipColor, fontSize: 10, fontWeight: FontWeight.w500)),
           Text(label, style: TextStyle(
-            color: chipColor.withOpacity(0.8), fontSize: 12, fontWeight: FontWeight.w600)),
+            color: chipColor.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600)),
         ]),
       ]),
     );

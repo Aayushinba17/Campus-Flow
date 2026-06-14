@@ -7,7 +7,7 @@ import '../models/wellness_model.dart';
 import '../utils/constants.dart';
 
 class WellnessService {
-  static final String baseUrl = '${AppConstants.baseUrl}/api/wellness';
+  static const String baseUrl = '${AppConstants.baseUrl}/api/wellness';
 
   // ─── Local state keys ───
   static const String _cupsKey = 'cups_today';

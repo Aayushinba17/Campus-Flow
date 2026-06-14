@@ -6,7 +6,7 @@ class AppConstants {
   // static const String baseUrl = 'http://10.0.2.2:8000'; // Android emulator localhost
 
   // ── User ID (in production: use Firebase Auth or similar) ─────────────
-  static const String userId = 'demo_user_001';
+  //static const String userId = 'demo_user_001';
 
   // ── API Endpoints ─────────────────────────────────────────────────────
 
@@ -67,7 +67,8 @@ class AppConstants {
   static const String notesList          = '/api/notes/list';
   static const String notesAsk           = '/api/notes/ask';
   static const String notesDelete        = '/api/notes';
-  static const String notesSemanticSearch = '/api/notes/semantic-search';
+
+  static const String notesProcessFile = '/api/notes/process-file';
 
   // Wellness
   static const String wellnessPomodoro   = '/api/wellness/pomodoro';
@@ -87,13 +88,6 @@ class AppConstants {
   static const String locationAdjusted   = '/api/location/adjusted-reminder-time';
   static const String locationZones      = '/api/location/zones';
   static const String locationHistory    = '/api/location/history';
-
-  // ── App Config ────────────────────────────────────────────────────────
-  static const int notifBatchSize        = 50;
-  static const int notifSyncIntervalMins = 30;
-  static const int digestHour            = 8;   // 8 AM
-  static const int waterReminderMins     = 90;
-  static const int preClassReminderMins  = 30;
 
   // ── WorkManager Task Names ────────────────────────────────────────────
   static const String taskDigest         = 'morning_digest';

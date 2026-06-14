@@ -16,7 +16,7 @@ class UsageHeatmap extends StatelessWidget {
       );
     }
 
-    final max = daily.values.fold<double>(1, (m, v) => (v as num).toDouble() > m ? (v as num).toDouble() : m);
+    final max = daily.values.fold<double>(1, (m, v) => (v as num).toDouble() > m ? (v).toDouble() : m);
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       // Heatmap grid
@@ -30,7 +30,7 @@ class UsageHeatmap extends StatelessWidget {
               width: 36, height: 36,
               decoration: BoxDecoration(
                 color: Color.lerp(
-                  const Color(0xFFE8592B).withOpacity(0.1),
+                  const Color(0xFFE8592B).withValues(alpha: 0.1),
                   const Color(0xFFE8592B),
                   intensity,
                 ),
@@ -59,7 +59,7 @@ class UsageHeatmap extends StatelessWidget {
         ...List.generate(5, (i) => Container(
           width: 14, height: 14, margin: const EdgeInsets.symmetric(horizontal: 2),
           decoration: BoxDecoration(
-            color: Color.lerp(const Color(0xFFE8592B).withOpacity(0.1), const Color(0xFFE8592B), (i + 1) / 5),
+            color: Color.lerp(const Color(0xFFE8592B).withValues(alpha: 0.1), const Color(0xFFE8592B), (i + 1) / 5),
             borderRadius: BorderRadius.circular(3),
           ),
         )),

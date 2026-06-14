@@ -156,13 +156,13 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> with SingleTickerProv
       background: Container(
         alignment: Alignment.centerLeft,
         padding: const EdgeInsets.only(left: 20),
-        decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
+        decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
         child: const Icon(Icons.check_circle, color: Colors.green),
       ),
       secondaryBackground: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
+        decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
         child: const Icon(Icons.archive_outlined, color: Colors.red),
       ),
       confirmDismiss: (direction) async {
@@ -180,7 +180,7 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> with SingleTickerProv
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: isFollowUp
-              ? Border.all(color: const Color(0xFF6366F1).withOpacity(0.3))
+              ? Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.3))
               : null,
         ),
         child: Padding(
@@ -203,7 +203,7 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> with SingleTickerProv
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: isFollowUp ? const Color(0xFF6366F1).withOpacity(0.1) : pColor.withOpacity(0.1),
+                  color: isFollowUp ? const Color(0xFF6366F1).withValues(alpha: 0.1) : pColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -238,7 +238,7 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> with SingleTickerProv
               const SizedBox(height: 6),
               Row(children: [
                 const SizedBox(width: 20),
-                Icon(Icons.person_outline, size: 12, color: const Color(0xFF6366F1)),
+                const Icon(Icons.person_outline, size: 12, color: Color(0xFF6366F1)),
                 const SizedBox(width: 4),
                 Text('Ask: ${task['person']}',
                   style: const TextStyle(fontSize: 12, color: Color(0xFF6366F1))),
@@ -253,7 +253,7 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> with SingleTickerProv
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8592B).withOpacity(0.08),
+                    color: const Color(0xFFE8592B).withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Row(mainAxisSize: MainAxisSize.min, children: [
@@ -293,7 +293,7 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> with SingleTickerProv
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 4),
@@ -342,7 +342,7 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> with SingleTickerProv
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: (_listening ? Colors.red : const Color(0xFFE8592B)).withOpacity(0.4),
+                      color: (_listening ? Colors.red : const Color(0xFFE8592B)).withValues(alpha: 0.4),
                       blurRadius: _listening ? 30 : 15,
                     ),
                   ],
@@ -401,8 +401,10 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> with SingleTickerProv
     } else {
       final available = await _speech.initialize();
       if (!available) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Microphone not available')));
+        }
         return;
       }
 
@@ -417,7 +419,7 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> with SingleTickerProv
             _processVoiceNote(result.recognizedWords);
           }
         },
-        listenFor: const Duration(seconds: 30),
+        listenOptions: SpeechListenOptions(listenFor: const Duration(seconds: 30)),
       );
     }
   }
@@ -452,8 +454,10 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> with SingleTickerProv
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+      }
     }
 
     setState(() => _liveTranscript = '');

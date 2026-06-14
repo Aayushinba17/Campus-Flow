@@ -5,7 +5,8 @@ import uuid
 import json
 from datetime import datetime
 from boto3.dynamodb.conditions import Key
-
+from fastapi import UploadFile, File
+import io
 from app.core.database import get_table
 from app.services.claude_service import process_notes, ask_notes
 from app.services.aws_service import upload_to_s3
@@ -94,10 +95,10 @@ async def process_note_text(req: NoteTextRequest):
     # Auto-add any tasks found in notes to task board
     created_tasks = []
     for task in processed.get("tasks", []):
-    title = task.get("task", "")
-    if is_duplicate_task(task_table, req.user_id, title):
-        continue
-    task_id = f"task_{uuid.uuid4().hex[:8]}"
+        title = task.get("task", "")
+        if is_duplicate_task(task_table, req.user_id, title):
+            continue
+        task_id = f"task_{uuid.uuid4().hex[:8]}"
         task_item = {
             "user_id": req.user_id,
             "task_id": task_id,
@@ -267,3 +268,47 @@ async def delete_note(user_id: str, note_id: str):
     table = get_table("notes")
     table.delete_item(Key={"user_id": user_id, "note_id": note_id})
     return {"deleted": True}
+
+@router.post("/process-file")
+async def process_note_file(
+    user_id: str,
+    file: UploadFile = File(...),
+    subject: Optional[str] = None,  
+):
+    """
+    Accepts a PDF or image of lecture notes. Runs OCR (Rekognition for images,
+    PyPDF for PDFs), then pipes the extracted text through process_notes().
+    """
+    content = await file.read()
+    filename = (file.filename or "").lower()
+    extracted_text = ""
+
+    if filename.endswith(".pdf"):
+        # PDF text extraction
+        try:
+            from pypdf import PdfReader
+            reader = PdfReader(io.BytesIO(content))
+            extracted_text = "\n".join(p.extract_text() or "" for p in reader.pages)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"PDF parse failed: {e}")
+
+    elif filename.endswith((".png", ".jpg", ".jpeg", ".webp")):
+        # Image OCR via existing AWS Rekognition path   
+        from app.services.aws_service import detect_text_in_image
+        try:
+            extracted_text = detect_text_in_image(content)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"OCR failed: {e}")
+
+    else:
+        raise HTTPException(status_code=400, detail="Only PDF or image files are supported.")
+
+    if len(extracted_text.strip()) < 50:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Could not extract enough text (got {len(extracted_text)} chars).",
+        )
+
+    # Reuse the existing process-text logic
+    req = NoteTextRequest(user_id=user_id, text=extracted_text, subject=subject)
+    return await process_note_text(req)

@@ -14,7 +14,6 @@ class GeminiResponse:
         self.content = [GeminiMessageContent(text)]
 
 class GeminiMessages:
-    class GeminiMessages:
     def create(self, model, max_tokens, system, messages):
         from google import genai
         from google.genai import types

@@ -14,16 +14,16 @@ class FreeSlotCard extends StatelessWidget {
         width: 160,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFF059669).withOpacity(0.06),
+          color: const Color(0xFF059669).withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFF059669).withOpacity(0.2)),
+          border: Border.all(color: const Color(0xFF059669).withValues(alpha: 0.2)),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
           Row(children: [
             Container(
               width: 28, height: 28,
               decoration: BoxDecoration(
-                color: const Color(0xFF059669).withOpacity(0.15),
+                color: const Color(0xFF059669).withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(7),
               ),
               child: const Icon(Icons.coffee_outlined, color: Color(0xFF059669), size: 14),

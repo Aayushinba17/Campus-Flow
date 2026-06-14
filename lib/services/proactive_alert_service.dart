@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:workmanager/workmanager.dart';
 import 'package:http/http.dart' as http;
 import '../utils/constants.dart';
+import '../services/user_service.dart';
 
 class ProactiveAlertService {
   static final ProactiveAlertService _instance = ProactiveAlertService._internal();
@@ -14,8 +14,7 @@ class ProactiveAlertService {
 
   final FlutterLocalNotificationsPlugin _notif = FlutterLocalNotificationsPlugin();
   final String _base = AppConstants.baseUrl;
-  final String _uid  = AppConstants.userId;
-
+  
   // Focus mode state
   String?  _activeFocusSessionId;
   bool     _focusModeActive = false;
@@ -107,7 +106,7 @@ class ProactiveAlertService {
   Future<void> checkAndFirePendingAlerts() async {
     try {
       final r = await http.get(
-        Uri.parse('$_base/api/alerts/pending/$_uid'),
+        Uri.parse('$_base/api/alerts/pending/${await UserService.getUserId()}'),
       ).timeout(const Duration(seconds: 10));
 
       if (r.statusCode != 200) return;
@@ -141,7 +140,7 @@ class ProactiveAlertService {
       final r = await http.post(
         Uri.parse('$_base/api/alerts/deadline-check'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'user_id': _uid, 'hours_ahead': hoursAhead}),
+        body: jsonEncode({'user_id': (await UserService.getUserId()), 'hours_ahead': hoursAhead}),
       );
       final data = jsonDecode(r.body);
       final alerts = (data['alerts'] as List? ?? []).cast<Map<String, dynamic>>();
@@ -194,7 +193,7 @@ class ProactiveAlertService {
         Uri.parse('$_base/api/alerts/silence-check'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'user_id': _uid,
+          'user_id': (await UserService.getUserId()),
           'app_name': appName,
           'silence_hours': silenceHours,
         }),
@@ -237,7 +236,7 @@ class ProactiveAlertService {
         Uri.parse('$_base/api/alerts/pre-class-nudge'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'user_id':   _uid,
+          'user_id':   (await UserService.getUserId()),
           'subject':   subject,
           'start_time': startTime,
           if (room != null)      'room': room,
@@ -280,7 +279,7 @@ class ProactiveAlertService {
         Uri.parse('$_base/api/alerts/travel-buffer'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'user_id':        _uid,
+          'user_id':        (await UserService.getUserId()),
           'event_title':    eventTitle,
           'event_time':     eventTime,
           'is_off_campus':  isOffCampus,
@@ -301,13 +300,13 @@ class ProactiveAlertService {
       (alert['alert_id'] ?? 'travel').hashCode,
       alert['title'] as String? ?? 'Time to leave!',
       alert['body']  as String? ?? '',
-      NotificationDetails(
+      const NotificationDetails(
         android: AndroidNotificationDetails(
           'travel_alerts', 'Travel Reminders',
           importance: Importance.max,
           priority: Priority.max,
-          color: const Color(0xFFE8592B),
-          actions: const [
+          color: Color(0xFFE8592B),
+          actions: [
             AndroidNotificationAction('already_left', '✅ Already left'),
             AndroidNotificationAction('snooze_5', '⏰ Snooze 5 min'),
           ],
@@ -329,7 +328,7 @@ class ProactiveAlertService {
         Uri.parse('$_base/api/alerts/focus-mode/start'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'user_id':          _uid,
+          'user_id':          (await UserService.getUserId()),
           'session_type':     sessionType,
           'duration_minutes': durationMinutes,
           if (subject != null) 'subject': subject,
@@ -363,7 +362,7 @@ class ProactiveAlertService {
         Uri.parse('$_base/api/alerts/focus-mode/end'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'user_id':    _uid,
+          'user_id':    (await UserService.getUserId()),
           'session_id': _activeFocusSessionId,
         }),
       );
@@ -396,7 +395,7 @@ class ProactiveAlertService {
     await _notif.show(
       999,   // Fixed ID so we can update/cancel it
       data['title'] as String? ?? '🎯 Focus Mode Active',
-      '${data['message']} (${minutes} min)',
+      '${data['message']} ($minutes min)',
       NotificationDetails(
         android: AndroidNotificationDetails(
           'focus_mode', 'Focus Mode',
@@ -427,7 +426,7 @@ class ProactiveAlertService {
   Future<void> _restoreFocusState() async {
     try {
       final r = await http.get(
-        Uri.parse('$_base/api/alerts/focus-mode/active/$_uid'),
+        Uri.parse('$_base/api/alerts/focus-mode/active/${await UserService.getUserId()}'),
       );
       final data = jsonDecode(r.body) as Map<String, dynamic>;
       if (data['has_active_session'] == true) {

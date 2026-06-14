@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import '../utils/constants.dart';
+import '../services/user_service.dart';
 
 /// Handles Google Classroom connection and the autonomous activity feed.
 /// Add `url_launcher: ^6.3.0` to pubspec.yaml.
@@ -12,13 +13,12 @@ class ClassroomService {
   ClassroomService._internal();
 
   final String _base = AppConstants.baseUrl;
-  final String _uid  = AppConstants.userId;
 
   // ── 1. Connection status ────────────────────────────────────────────
 
   Future<bool> isConnected() async {
     try {
-      final r = await http.get(Uri.parse('$_base/api/classroom/status/$_uid'));
+      final r = await http.get(Uri.parse('${AppConstants.baseUrl}/api/classroom/status/${await UserService.getUserId()}'));
       final data = jsonDecode(r.body);
       return data['connected'] == true;
     } catch (_) { return false; }
@@ -33,7 +33,7 @@ class ClassroomService {
   /// Call `isConnected()` again ~3-5 seconds after this, or when the app
   /// resumes (AppLifecycleState.resumed), to detect completion.
   Future<void> startConnection() async {
-    final r = await http.get(Uri.parse('$_base/api/classroom/oauth/start?user_id=$_uid'));
+    final r = await http.get(Uri.parse('$_base/api/classroom/oauth/start?user_id=${await UserService.getUserId()}'));
     final data = jsonDecode(r.body);
     final authUrl = data['auth_url'] as String?;
     if (authUrl == null) return;
@@ -48,7 +48,7 @@ class ClassroomService {
     final r = await http.post(
       Uri.parse('$_base/api/classroom/sync'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'user_id': _uid}),
+      body: jsonEncode({'user_id': (await UserService.getUserId())}),
     );
     return jsonDecode(r.body) as Map<String, dynamic>;
   }
@@ -57,13 +57,13 @@ class ClassroomService {
     final r = await http.post(
       Uri.parse('$_base/api/classroom/sync-announcements'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'user_id': _uid}),
+      body: jsonEncode({'user_id': (await UserService.getUserId())}),
     );
     return jsonDecode(r.body) as Map<String, dynamic>;
   }
 
   Future<void> disconnect() async {
-    await http.delete(Uri.parse('$_base/api/classroom/disconnect/$_uid'));
+    await http.delete(Uri.parse('$_base/api/classroom/disconnect/${await UserService.getUserId()}'));
   }
 
   // ── 4. Activity feed (autonomous actions log) ───────────────────────
@@ -73,7 +73,7 @@ class ClassroomService {
     bool unreadOnly = false,
   }) async {
     final r = await http.get(Uri.parse(
-      '$_base/api/notifications/activity-feed/$_uid?limit=$limit&unread_only=$unreadOnly',
+      '$_base/api/notifications/activity-feed/${await UserService.getUserId()}?limit=$limit&unread_only=$unreadOnly',
     ));
     final data = jsonDecode(r.body);
     return (data['activity'] as List? ?? []).cast<Map<String, dynamic>>();
@@ -81,7 +81,7 @@ class ClassroomService {
 
   Future<bool> undoActivity(String logId) async {
     final r = await http.post(
-      Uri.parse('$_base/api/notifications/activity-feed/$_uid/undo/$logId'),
+      Uri.parse('$_base/api/notifications/activity-feed/${await UserService.getUserId()}/undo/$logId'),
     );
     if (r.statusCode != 200) return false;
     final data = jsonDecode(r.body);
@@ -195,6 +195,7 @@ class _ActivityFeedScreenState extends State<ActivityFeedScreen> {
   Future<void> _undo(Map<String, dynamic> entry) async {
     final ok = await _classroom.undoActivity(entry['log_id'] as String);
     if (ok) {
+      if (!mounted) return;
       setState(() => entry['undone'] = true);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Undone')));

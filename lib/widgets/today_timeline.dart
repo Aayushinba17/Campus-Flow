@@ -40,7 +40,7 @@ class TodayTimeline extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: isNow ? const Color(0xFFE8592B).withOpacity(0.04) : null,
+            color: isNow ? const Color(0xFFE8592B).withValues(alpha: 0.04) : null,
             border: isLast ? null : Border(bottom: BorderSide(color: Colors.grey.shade100)),
           ),
           child: Row(children: [
@@ -53,7 +53,7 @@ class TodayTimeline extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: isNow ? const Color(0xFFE8592B) : Colors.grey.shade300,
-                    boxShadow: isNow ? [BoxShadow(color: const Color(0xFFE8592B).withOpacity(0.4), blurRadius: 6)] : null,
+                    boxShadow: isNow ? [BoxShadow(color: const Color(0xFFE8592B).withValues(alpha: 0.4), blurRadius: 6)] : null,
                   ),
                 ),
               ]),
@@ -63,7 +63,7 @@ class TodayTimeline extends StatelessWidget {
             Container(
               width: 36, height: 36,
               decoration: BoxDecoration(
-                color: (isClass ? const Color(0xFFE8592B) : isDeadline ? Colors.red : Colors.blue).withOpacity(0.1),
+                color: (isClass ? const Color(0xFFE8592B) : isDeadline ? Colors.red : Colors.blue).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(

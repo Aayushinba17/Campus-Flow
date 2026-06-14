@@ -10,6 +10,8 @@ import 'screens/onboarding_screen.dart';
 import 'screens/home_screen.dart';
 import 'services/wellness_notification_manager.dart';
 import 'models/wellness_model.dart';
+import 'services/location_service.dart';
+import 'package:intl/intl.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -44,6 +46,9 @@ void callbackDispatcher() {
         // Fires every 6 hours — deep deadline scan
         await alertService.checkDeadlines(hoursAhead: 24);
         break;
+      case 'location_zone_check':
+        await LocationService.updateCurrentZone();
+        break;
     }
     return Future.value(true);
   });
@@ -52,7 +57,7 @@ void callbackDispatcher() {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ── Init local notifications ──────────────────────────────────────────
+  // ── Init local notifications ────────────────────────────────────────── 
   const android = AndroidInitializationSettings('@mipmap/ic_launcher');
   const ios     = DarwinInitializationSettings();
   await flutterLocalNotificationsPlugin.initialize(
@@ -60,7 +65,7 @@ void main() async {
   );
 
   // ── Init WorkManager ──────────────────────────────────────────────────
-  await Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
+  await Workmanager().initialize(callbackDispatcher);
 
   // ── Schedule recurring background jobs ────────────────────────────────
   await Workmanager().registerPeriodicTask(
@@ -99,6 +104,15 @@ void main() async {
     constraints: Constraints(networkType: NetworkType.connected),
     existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
   );
+
+  // Register location zone check
+  await Workmanager().registerPeriodicTask(
+  'location_zone_check',
+  'location_zone_check',
+  frequency: const Duration(minutes: 30),
+  constraints: Constraints(networkType: NetworkType.connected),
+  existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+);
 
   // Init notification channels once at startup
   await WellnessNotificationManager.init();
@@ -141,31 +155,60 @@ class _CampusFlowAppState extends State<CampusFlowApp>
   }
 
   Future<void> _runWellnessChecks() async {
-    // Build context from your real data sources
-    // In Phase 2+, these come from actual schedule/notification data
+  final api = ApiService();
+  try {
+    // Pull real schedule for today
+    final today = await api.getTodayView();
+    final classes = (today['classes'] as List? ?? [])
+        .map((c) => ScheduleClassItem(
+              time: c['start_time'] ?? '',
+              subject: c['subject'] ?? 'Class',
+              room: c['room'] ?? '',
+            ))
+        .toList();
+
+    // Pull real deadline count (next 48h)
+    final deadlines = await api.getExtractedDeadlines(daysAhead: 2);
+
+    // Pull real notification stats
+    final stats = await api.getNotificationStats();
+    final unreadUrgent = (stats['urgent_count'] as int?) ?? 0;
+    final screenOnMins = (stats['screen_on_minutes_today'] as int?) ?? 0;
+
     final ctx = WellnessContext(
-      schedule: [
-        ScheduleClassItem(time: '09:00', subject: 'Data Structures', room: '204'),
-        ScheduleClassItem(time: '11:00', subject: 'Operating Systems', room: '101'),
-        ScheduleClassItem(time: '14:00', subject: 'DBMS Lab', room: 'Lab 3'),
-      ],
-      deadlinesIn48h: 2,
-      unreadUrgentMessages: 3,
-      screenOnMinutesToday: 180,
-      dateLabel: _dayLabel(),
+      schedule: classes,
+      deadlinesIn48h: deadlines.length,
+      unreadUrgentMessages: unreadUrgent,
+      screenOnMinutesToday: screenOnMins,
+      dateLabel: DateFormat('EEEE').format(DateTime.now()),
     );
+
+    // Tomorrow's first class
+    String? tomorrowFirstClass;
+    try {
+      final sched = await api.getSchedule();
+      final tomorrow = DateTime.now().add(const Duration(days: 1));
+      const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+      final tomorrowDay = days[tomorrow.weekday - 1];
+      final tomorrowClasses = (sched['classes'] as List? ?? [])
+          .where((c) => c['day'] == tomorrowDay).toList();
+      if (tomorrowClasses.isNotEmpty) {
+        tomorrowClasses.sort((a, b) => (a['start_time'] ?? '').compareTo(b['start_time'] ?? ''));
+        tomorrowFirstClass = tomorrowClasses.first['start_time'];
+      }
+    } catch (_) {}
 
     await WellnessNotificationManager.runChecks(
       ctx: ctx,
-      tomorrowFirstClass: '09:00',
+      tomorrowFirstClass: tomorrowFirstClass ?? '09:00',
       screenActive: true,
     );
+  } catch (e) {
+    // Don't crash the app if server is unreachable — wellness check is best-effort
+    debugPrint('[Wellness] Skipped: $e');
   }
+}
 
-  String _dayLabel() {
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    return days[DateTime.now().weekday - 1];
-  }
 
   @override
   void dispose() {

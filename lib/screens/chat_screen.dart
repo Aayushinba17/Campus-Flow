@@ -42,7 +42,7 @@ class _ChatScreenState extends State<ChatScreen> {
           'role': 'user', 'content': h['user_msg'],
           'ts': h['created_at'],
         }).expand((m) {
-          final h = _messages.firstWhere((x) => x['content'] == m['content'], orElse: () => {});
+          _messages.firstWhere((x) => x['content'] == m['content'], orElse: () => {});
           return [m];
         }).toList();
       });
@@ -82,6 +82,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _startListening() async {
     final available = await _speech.initialize();
     if (!available) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Microphone not available')));
       return;
@@ -203,7 +204,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   bottomLeft:  Radius.circular(isUser ? 18 : 4),
                   bottomRight: Radius.circular(isUser ? 4 : 18),
                 ),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)],
               ),
               child: Text(msg['content'] ?? '',
                 style: TextStyle(
@@ -254,7 +255,7 @@ class _ChatScreenState extends State<ChatScreen> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, -4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, -4))],
       ),
       child: Row(children: [
         // Mic button
@@ -265,7 +266,7 @@ class _ChatScreenState extends State<ChatScreen> {
             duration: const Duration(milliseconds: 200),
             width: 44, height: 44,
             decoration: BoxDecoration(
-              color: _listening ? Colors.red : const Color(0xFFE8592B).withOpacity(0.1),
+              color: _listening ? Colors.red : const Color(0xFFE8592B).withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -314,7 +315,7 @@ class _ChatScreenState extends State<ChatScreen> {
       Container(
         width: 72, height: 72,
         decoration: BoxDecoration(
-          color: const Color(0xFFE8592B).withOpacity(0.1),
+          color: const Color(0xFFE8592B).withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
         child: const Icon(Icons.auto_awesome, color: Color(0xFFE8592B), size: 32),

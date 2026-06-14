@@ -23,9 +23,9 @@ class StressDensityCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(children: [
         Text(emojis[level] ?? '😐', style: const TextStyle(fontSize: 28)),
@@ -34,7 +34,7 @@ class StressDensityCard extends StatelessWidget {
           Text('Stress: ${labels[level] ?? level}',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color)),
           const SizedBox(height: 2),
-          Text(message, style: TextStyle(fontSize: 12, color: color.withOpacity(0.8), height: 1.3)),
+          Text(message, style: TextStyle(fontSize: 12, color: color.withValues(alpha: 0.8), height: 1.3)),
         ])),
       ]),
     );

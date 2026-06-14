@@ -26,8 +26,8 @@ class TaskCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(14),
-          border: isFollowUp ? Border.all(color: const Color(0xFF6366F1).withOpacity(0.3)) : null,
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8)],
+          border: isFollowUp ? Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.3)) : null,
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8)],
         ),
         child: Row(children: [
           // Status checkbox

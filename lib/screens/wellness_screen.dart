@@ -561,9 +561,9 @@ class _StressDensityCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _color.withOpacity(0.12),
+        color: _color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _color.withOpacity(0.4)),
+        border: Border.all(color: _color.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -607,7 +607,7 @@ class _StatPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(label, style: TextStyle(color: color, fontSize: 11)),
@@ -809,7 +809,7 @@ class _SleepReminderCard extends StatefulWidget {
 
 class _SleepReminderCardState extends State<_SleepReminderCard> {
   String _sleepGoal = '11:00 PM';
-  String _wakeGoal = '07:00 AM';
+  final String _wakeGoal = '07:00 AM';
 
   // Calculate recommended sleep from tomorrow's first class
   String _getRecommendedBedtime(String firstClassTime) {
@@ -871,7 +871,7 @@ class _SleepReminderCardState extends State<_SleepReminderCard> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
@@ -912,9 +912,9 @@ class _SleepStatBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1038,11 +1038,11 @@ class _WeeklySummaryCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Row(
+                    const Row(
                       children: [
-                        _LegendDot(color: const Color(0xFF6C63FF), label: 'Study'),
-                        const SizedBox(width: 12),
-                        _LegendDot(color: const Color(0xFF10B981), label: 'Leisure'),
+                        _LegendDot(color: Color(0xFF6C63FF), label: 'Study'),
+                        SizedBox(width: 12),
+                        _LegendDot(color: Color(0xFF10B981), label: 'Leisure'),
                       ],
                     ),
                   ],
@@ -1052,7 +1052,7 @@ class _WeeklySummaryCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -1087,7 +1087,7 @@ class _WeeklyStatBox extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
+          color: Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
@@ -1173,10 +1173,10 @@ class _WellnessCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF59E0B).withOpacity(0.2),
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                        color: const Color(0xFFF59E0B).withOpacity(0.5)),
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.5)),
                   ),
                   child: Text(
                     badge!,

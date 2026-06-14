@@ -70,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onDestinationSelected: (i) => setState(() => _currentIndex = i),
         backgroundColor: Colors.white,
         elevation: 0,
-        indicatorColor: const Color(0xFFE8592B).withOpacity(0.12),
+        indicatorColor: const Color(0xFFE8592B).withValues(alpha: 0.12),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined),    selectedIcon: Icon(Icons.home),          label: 'Home'),
           NavigationDestination(icon: Icon(Icons.calendar_today_outlined), selectedIcon: Icon(Icons.calendar_today),label: 'Schedule'),
@@ -193,10 +193,10 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            const Icon(Icons.auto_awesome, color: Colors.white70, size: 16),
-            const SizedBox(width: 6),
-            const Text('AI Morning Briefing',
+          const Row(children: [
+            Icon(Icons.auto_awesome, color: Colors.white70, size: 16),
+            SizedBox(width: 6),
+            Text('AI Morning Briefing',
               style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500)),
           ]),
           const SizedBox(height: 10),
@@ -219,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(children: [
@@ -249,8 +249,8 @@ class _HomeScreenState extends State<HomeScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
-        border: Border.all(color: color.withOpacity(0.3)),
+        color: color.withValues(alpha: 0.08),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(children: [
@@ -295,10 +295,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: 40, height: 40,
                 decoration: BoxDecoration(
                   color: isClass
-                    ? const Color(0xFFE8592B).withOpacity(0.1)
+                    ? const Color(0xFFE8592B).withValues(alpha: 0.1)
                     : isDeadline
-                      ? Colors.red.withOpacity(0.1)
-                      : Colors.blue.withOpacity(0.1),
+                      ? Colors.red.withValues(alpha: 0.1)
+                      : Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -419,7 +419,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _emptyDigestCard() => Container(
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: const Color(0xFFE8592B).withOpacity(0.08),
+      color: const Color(0xFFE8592B).withValues(alpha: 0.08),
       borderRadius: BorderRadius.circular(20),
     ),
     child: const Text('Tap to generate your morning briefing',

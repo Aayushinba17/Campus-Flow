@@ -17,7 +17,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
 
   Map<String, dynamic>? _todayView;
   Map<String, dynamic>? _fullSchedule;
-  Map<String, dynamic>? _freeSlots;
   Map<String, dynamic>? _examCountdown;
   bool _loading = true;
 
@@ -169,7 +168,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
+            color: Colors.white.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
@@ -195,7 +194,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
           return Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: isNow ? const Color(0xFFE8592B).withOpacity(0.05) : null,
+              color: isNow ? const Color(0xFFE8592B).withValues(alpha: 0.05) : null,
               border: i < classes.length - 1
                   ? Border(bottom: BorderSide(color: Colors.grey.shade100))
                   : null,
@@ -218,7 +217,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: isNow ? const Color(0xFFE8592B) : Colors.grey.shade300,
-                  boxShadow: isNow ? [BoxShadow(color: const Color(0xFFE8592B).withOpacity(0.4), blurRadius: 8)] : null,
+                  boxShadow: isNow ? [BoxShadow(color: const Color(0xFFE8592B).withValues(alpha: 0.4), blurRadius: 8)] : null,
                 ),
               ),
               // Details
@@ -253,7 +252,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
           leading: Container(
             width: 40, height: 40,
             decoration: BoxDecoration(
-              color: const Color(0xFF6366F1).withOpacity(0.1),
+              color: const Color(0xFF6366F1).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.event, color: Color(0xFF6366F1), size: 20),
@@ -274,7 +273,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
         return ListTile(
           leading: Container(
             width: 40, height: 40,
-            decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
             child: const Icon(Icons.warning_amber_outlined, color: Colors.red, size: 20),
           ),
           title: Text(item['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
@@ -300,9 +299,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
             width: 150,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFF059669).withOpacity(0.08),
+              color: const Color(0xFF059669).withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFF059669).withOpacity(0.2)),
+              border: Border.all(color: const Color(0xFF059669).withValues(alpha: 0.2)),
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
               Row(children: [
@@ -328,19 +327,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [const Color(0xFF6366F1).withOpacity(0.1), const Color(0xFF8B5CF6).withOpacity(0.1)],
+            colors: [const Color(0xFF6366F1).withValues(alpha: 0.1), const Color(0xFF8B5CF6).withValues(alpha: 0.1)],
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.2)),
+          border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.2)),
         ),
-        child: Row(children: [
-          const Icon(Icons.auto_awesome, color: Color(0xFF6366F1), size: 20),
-          const SizedBox(width: 12),
-          const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        child: const Row(children: [
+          Icon(Icons.auto_awesome, color: Color(0xFF6366F1), size: 20),
+          SizedBox(width: 12),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('AI Task Suggestions', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF6366F1))),
             Text('Let AI suggest what to do in free slots', style: TextStyle(fontSize: 12, color: Colors.grey)),
           ])),
-          const Icon(Icons.chevron_right, color: Color(0xFF6366F1)),
+          Icon(Icons.chevron_right, color: Color(0xFF6366F1)),
         ]),
       ),
     );
@@ -389,7 +388,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
               leading: Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8592B).withOpacity(0.1),
+                  color: const Color(0xFFE8592B).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(child: Text(
@@ -453,7 +452,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12)],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -480,7 +479,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8592B).withOpacity(0.08),
+        color: const Color(0xFFE8592B).withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(children: [
@@ -504,14 +503,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
       await _api.uploadTimetableImage(File(picked.path));
       if (mounted) Navigator.pop(context);
       _loadData();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Timetable uploaded! Classes extracted.'), backgroundColor: Color(0xFF059669)),
       );
+      }
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Upload failed: $e'), backgroundColor: Colors.red),
       );
+      }
     }
   }
 
@@ -552,7 +555,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: ListTile(
-                tileColor: const Color(0xFF6366F1).withOpacity(0.05),
+                tileColor: const Color(0xFF6366F1).withValues(alpha: 0.05),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 leading: const Icon(Icons.lightbulb_outline, color: Color(0xFF6366F1)),
                 title: Text(suggestion['task'] ?? suggestion['suggestion'] ?? '', style: const TextStyle(fontSize: 14)),

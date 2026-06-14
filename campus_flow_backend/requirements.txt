@@ -13,3 +13,4 @@ google-auth-oauthlib
 google-api-python-client
 sentence-transformers==2.7.0
 numpy<2
+pypdf
