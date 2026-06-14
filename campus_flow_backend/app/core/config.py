@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str = ""
     CLAUDE_MODEL: str = "claude-sonnet-4-6"
 
+    # Gemini
+    GEMINI_API_KEY: str = ""
+
     # Bedrock (only needed if AI_PROVIDER = "bedrock")
     # Uses the same AWS credentials as DynamoDB/S3
     BEDROCK_REGION: str = "us-east-1"       # Bedrock region (Claude available here)

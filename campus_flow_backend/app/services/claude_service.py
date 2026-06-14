@@ -4,12 +4,55 @@ from app.core.config import settings
 
 _client = None
 
+class GeminiMessageContent:
+    def __init__(self, text):
+        self.text = text
+
+class GeminiResponse:
+    def __init__(self, text):
+        self.content = [GeminiMessageContent(text)]
+
+class GeminiMessages:
+    def create(self, model, max_tokens, system, messages):
+        import google.generativeai as genai
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        
+        gemini_msgs = []
+        for m in messages:
+            # If the content is empty, use a placeholder space
+            content = m["content"]
+            if not content:
+                content = " "
+            role = "user" if m["role"] == "user" else "model"
+            gemini_msgs.append({"role": role, "parts": [content]})
+            
+        gen_model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            system_instruction=system
+        )
+        
+        response = gen_model.generate_content(gemini_msgs)
+        # Ensure we return valid text even if blocked
+        text = "No response generated."
+        try:
+            text = response.text
+        except ValueError:
+            if response.candidates:
+                text = response.candidates[0].content.parts[0].text
+        
+        return GeminiResponse(text)
+
+class GeminiClient:
+    def __init__(self):
+        self.messages = GeminiMessages()
+
 def get_client():
     """
-    Returns an Anthropic client — either direct API or via AWS Bedrock.
+    Returns an Anthropic client — either direct API, via AWS Bedrock, or Gemini via wrapper.
     Controlled by AI_PROVIDER in .env:
-      - "bedrock"   → Uses AWS Bedrock (hackathon credits, free)
-      - "anthropic"  → Uses Anthropic API directly (needs ANTHROPIC_API_KEY)
+      - "bedrock"   → Uses AWS Bedrock
+      - "anthropic"  → Uses Anthropic API directly
+      - "gemini"     → Uses Gemini API natively using a wrapper
     """
     global _client
     if _client is None:
@@ -19,6 +62,8 @@ def get_client():
                 aws_secret_key=settings.AWS_SECRET_ACCESS_KEY,
                 aws_region=settings.BEDROCK_REGION,
             )
+        elif settings.AI_PROVIDER == "gemini":
+            _client = GeminiClient()
         else:
             _client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
     return _client
