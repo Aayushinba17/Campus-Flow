@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from boto3.dynamodb.conditions import Key
  
 from app.core.database import get_table
@@ -10,6 +10,7 @@ from app.services.claude_service import (
     classify_notifications,
     generate_morning_digest,
     build_student_context,
+    extract_deadlines_batch,
 )
 from app.services.orchestrator import process_event_autonomously
  

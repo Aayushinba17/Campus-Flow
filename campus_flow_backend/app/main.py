@@ -20,6 +20,13 @@ from app.api.routes import (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_dynamodb()
+    # Warm up the embedding model so the first request isn't slow
+    try:
+        from app.services.embedding_service import get_model
+        get_model()
+        print("[Embeddings] Model loaded and ready")
+    except Exception as e:
+        print(f"[Embeddings] Warm-up skipped: {e}")
     yield
 
 app = FastAPI(

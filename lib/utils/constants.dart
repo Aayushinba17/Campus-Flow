@@ -65,6 +65,7 @@ class AppConstants {
   static const String notesList          = '/api/notes/list';
   static const String notesAsk           = '/api/notes/ask';
   static const String notesDelete        = '/api/notes';
+  static const String notesSemanticSearch = '/api/notes/semantic-search';
 
   // Wellness
   static const String wellnessPomodoro   = '/api/wellness/pomodoro';

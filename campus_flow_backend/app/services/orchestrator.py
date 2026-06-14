@@ -27,6 +27,7 @@ from typing import Optional
 from app.core.database import get_table
 from app.services.claude_service import get_client
 from app.core.config import settings
+from app.services.embedding_service import embed, cosine_sim
 
 # Confidence thresholds — tune these as you collect real demo data
 AUTO_WRITE_THRESHOLD   = 0.85   # >= this -> write directly, zero taps
@@ -439,13 +440,18 @@ def log_activity(activity_table, user_id: str, entry: dict):
 # ── Helpers ──────────────────────────────────────────────────────────────
 
 def _titles_similar(a: str, b: str) -> bool:
-    """Cheap similarity check for dedup — normalize and compare word overlap."""
-    wa = set(a.lower().split())
-    wb = set(b.lower().split())
-    if not wa or not wb:
+    """Semantic dedup: catches paraphrased duplicates, not just shared words."""
+    a, b = (a or "").strip(), (b or "").strip()
+    if not a or not b:
         return False
-    overlap = len(wa & wb) / max(len(wa), len(wb))
-    return overlap >= 0.6
+    try:
+        return cosine_sim(embed(a), embed(b)) >= 0.75
+    except Exception:
+        # Fallback to the original word-overlap method if embeddings fail
+        wa, wb = set(a.lower().split()), set(b.lower().split())
+        if not wa or not wb:
+            return False
+        return len(wa & wb) / max(len(wa), len(wb)) >= 0.6
 
 
 def _add_minutes(time_str: str, minutes: int) -> str:
