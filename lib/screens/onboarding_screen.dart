@@ -187,9 +187,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final colors = page['gradient'] as List<Color>;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+      child: Center(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
           // Glowing icon
           Container(
             width: 100, height: 100,
@@ -232,6 +234,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ],
         ],
       ),
+    ),
+    ),
     );
   }
 
@@ -239,9 +243,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final colors = _pages[1]['gradient'] as List<Color>;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+      child: Center(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
           Container(
             width: 100, height: 100,
             decoration: BoxDecoration(
@@ -295,6 +301,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12)),
         ],
       ),
+    ),
+    ),
     );
   }
 
@@ -330,9 +338,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _locationSetupPage() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+      child: Center(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
           const Text('Mark Your Locations',
             style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
@@ -410,6 +420,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 12)),
         ],
       ),
+    ),
+    ),
     );
   }
 
