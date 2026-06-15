@@ -88,12 +88,15 @@ class _RoutineScreenState extends State<RoutineScreen> {
 
   Widget _contextCard() {
     final ctx = _currentContext!;
-    final activity = ctx['current_activity'] ?? ctx['status'] ?? 'Unknown';
+    final activity = ctx['context'] ?? 'Unknown';
     final activityIcons = {
       'studying': Icons.school, 'browsing': Icons.language,
       'idle': Icons.phone_android, 'gaming': Icons.sports_esports,
       'social_media': Icons.people, 'messaging': Icons.chat_bubble,
     };
+
+    final screenOn = ctx['screen_on'] == true;
+    final headphones = ctx['headphones_connected'] == true;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -116,19 +119,27 @@ class _RoutineScreenState extends State<RoutineScreen> {
           const Text('Current Context', style: TextStyle(color: Colors.white70, fontSize: 12)),
           Text(activity.toString().replaceAll('_', ' ').toUpperCase(),
             style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-          if (ctx['since'] != null)
-            Text('Since ${ctx['since']}', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12)),
+          if (ctx['last_updated'] != null)
+            Text('Last active: ${_formatTime(ctx['last_updated'])}', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12)),
         ])),
-        if (ctx['duration_minutes'] != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(10)),
-            child: Text('${ctx['duration_minutes']}m',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (screenOn) const Icon(Icons.screen_lock_portrait, color: Colors.white, size: 16),
+            if (headphones) const Icon(Icons.headphones, color: Colors.white, size: 16),
+          ],
+        )
       ]),
     );
+  }
+
+  String _formatTime(String isoTime) {
+    try {
+      final dt = DateTime.parse(isoTime).toLocal();
+      return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return isoTime;
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════

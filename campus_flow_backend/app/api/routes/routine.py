@@ -104,13 +104,19 @@ async def get_usage_heatmap(user_id: str, days: int = 7):
 
     # Flatten for easy Flutter rendering
     cells = []
+    day_totals = {day: 0 for day in DAYS}
     for day in DAYS:
         for hour in range(24):
+            mins = grid[day][hour]
             cells.append({
                 "day": day,
                 "hour": hour,
-                "minutes": grid[day][hour],
+                "minutes": mins,
             })
+            day_totals[day] += mins
+
+    total_minutes = sum(day_totals.values())
+    avg_daily_minutes = int(total_minutes / len(DAYS)) if DAYS else 0
 
     max_minutes = max(c["minutes"] for c in cells) if cells else 1
     # Add normalized 0-1 intensity for color rendering
@@ -121,6 +127,9 @@ async def get_usage_heatmap(user_id: str, days: int = 7):
         "grid": cells,
         "days": days,
         "max_minutes": max_minutes,
+        "heatmap": day_totals,
+        "total_minutes": total_minutes,
+        "avg_daily_minutes": avg_daily_minutes,
     }
 
 

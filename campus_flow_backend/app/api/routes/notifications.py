@@ -685,6 +685,10 @@ async def get_notification_stats(user_id: str):
     ]
 
     return {
+        "total": len(today_notifs),
+        "urgent": urgent_unread,
+        "urgent_count": urgent_unread,
+        "academic": categories.get("academic", 0),
         "total_today": len(today_notifs),
         "unread_total": len(all_unread),
         "urgent_unread": urgent_unread,

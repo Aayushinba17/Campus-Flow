@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
+import 'package:notification_listener_service/notification_listener_service.dart';
 import 'utils/constants.dart';
 import 'services/api_service.dart';
 import 'services/proactive_alert_service.dart';
@@ -58,6 +59,27 @@ void callbackDispatcher() {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ── Init Notification Listener ─────────────────────────────────────────
+  try {
+    bool hasPermission = await NotificationListenerService.isPermissionGranted();
+    if (hasPermission) {
+      NotificationListenerService.notificationsStream.listen((event) async {
+        if (event.packageName == null || event.title == null) return;
+        try {
+          final api = ApiService();
+          await api.ingestNotifications([
+            {
+              'package': event.packageName,
+              'title': event.title,
+              'content': event.content ?? '',
+              'timestamp': DateTime.now().toIso8601String(),
+            }
+          ]);
+        } catch (_) {}
+      });
+    }
+  } catch (_) {}
 
   // ── Init local notifications ────────────────────────────────────────── 
   const android = AndroidInitializationSettings('@mipmap/ic_launcher');

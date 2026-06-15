@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:notification_listener_service/notification_listener_service.dart';
 import '../services/api_service.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -587,6 +588,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
         Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
         const SizedBox(height: 4),
         Text(subtitle, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
+        const SizedBox(height: 24),
+        ElevatedButton(
+          onPressed: () async {
+            await NotificationListenerService.requestPermission();
+          },
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE8592B), foregroundColor: Colors.white),
+          child: const Text('Grant Access'),
+        ),
       ]),
     ),
   );

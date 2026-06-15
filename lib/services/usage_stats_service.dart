@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:app_usage/app_usage.dart';
 import 'api_service.dart';
 
 /// Collects and batches app usage statistics to the backend.
@@ -83,10 +84,37 @@ class UsageStatsService {
 
   /// Get today's usage statistics
   Future<Map<String, dynamic>> getDailyStats() async {
-    // Return mock or calculated stats here since app_usage plugin was reverted
-    return {
-      'total_screen_minutes': 0,
-      'study_minutes': 0,
-    };
+    try {
+      DateTime endDate = DateTime.now();
+      DateTime startDate = DateTime(endDate.year, endDate.month, endDate.day);
+      List<AppUsageInfo> infoList = await AppUsage().getAppUsage(startDate, endDate);
+
+      int totalMinutes = 0;
+      int studyMinutes = 0;
+
+      for (var info in infoList) {
+        final duration = info.usage.inMinutes;
+        if (duration == 0) continue;
+
+        totalMinutes += duration;
+
+        final lower = info.appName.toLowerCase();
+        if (!['youtube', 'instagram', 'whatsapp', 'snapchat', 'facebook', 'tiktok', 'netflix', 'game', 'twitter'].any((a) => lower.contains(a))) {
+          if (!['system', 'launcher', 'ui', 'android', 'clock', 'settings'].any((a) => lower.contains(a))) {
+            studyMinutes += duration;
+          }
+        }
+      }
+
+      return {
+        'total_screen_minutes': totalMinutes,
+        'study_minutes': studyMinutes,
+      };
+    } catch (e) {
+      return {
+        'total_screen_minutes': 0,
+        'study_minutes': 0,
+      };
+    }
   }
 }

@@ -30,6 +30,7 @@ dependencies:
 
   # Permissions
   permission_handler: ^11.3.0
+  app_usage: ^4.1.0
 
   # UI
   fl_chart: ^0.68.0
