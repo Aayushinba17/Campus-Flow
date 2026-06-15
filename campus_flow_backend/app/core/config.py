@@ -3,21 +3,7 @@ from typing import Optional
 
 class Settings(BaseSettings):
     # ── AI Provider ───────────────────────────────────────────────
-    # Set to "bedrock" to use AWS Bedrock (uses your hackathon credits)
-    # Set to "anthropic" to use Anthropic API directly
-    AI_PROVIDER: str = "gemini"
-
-    # Anthropic (only needed if AI_PROVIDER = "anthropic")
-    #  ANTHROPIC_API_KEY: str = ""
-    # CLAUDE_MODEL: str = "claude-sonnet-4-6"
-
-    # Gemini
     GEMINI_API_KEY: str = ""
-
-    # Bedrock (only needed if AI_PROVIDER = "bedrock")
-    # Uses the same AWS credentials as DynamoDB/S3
-    # BEDROCK_REGION: str = "ap-south-1"       # Bedrock region (Claude available here)
-    # BEDROCK_MODEL_ID: str = "anthropic.claude-sonnet-4-6-20250514"
 
     # AWS
     AWS_ACCESS_KEY_ID: str = ""

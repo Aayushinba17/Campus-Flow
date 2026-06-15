@@ -2,7 +2,7 @@ fastapi
 uvicorn[standard]
 pydantic
 pydantic-settings
-anthropic[bedrock]
+
 boto3
 botocore
 python-multipart

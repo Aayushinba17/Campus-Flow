@@ -1,5 +1,4 @@
 import json
-import anthropic
 from app.core.config import settings
 from app.services.embedding_service import embed, cosine_sim
 
@@ -36,33 +35,6 @@ class GeminiMessages:
         )
         text = response.text or "No response generated."
         return GeminiResponse(text)
-        
-        import google.generativeai as genai
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        
-        gemini_msgs = []
-        for m in messages:
-            # If the content is empty, use a placeholder space
-            content = m["content"]
-            if not content:
-                content = " "
-            role = "user" if m["role"] == "user" else "model"
-            gemini_msgs.append({"role": role, "parts": [content]})
-            
-        gen_model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
-            system_instruction=system
-        )
-        response = gen_model.generate_content(gemini_msgs)
-        # Ensure we return valid text even if blocked
-        text = "No response generated."
-        try:
-            text = response.text
-        except ValueError:
-            if response.candidates:
-                text = response.candidates[0].content.parts[0].text
-        
-        return GeminiResponse(text)
 
 class GeminiClient:
     def __init__(self):
@@ -70,32 +42,15 @@ class GeminiClient:
 
 def get_client():
     """
-    Returns an Anthropic client — either direct API, via AWS Bedrock, or Gemini via wrapper.
-    Controlled by AI_PROVIDER in .env:
-      - "bedrock"   → Uses AWS Bedrock
-      - "anthropic"  → Uses Anthropic API directly
-      - "gemini"     → Uses Gemini API natively using a wrapper
+    Returns a Gemini client wrapper.
     """
     global _client
     if _client is None:
-        if settings.AI_PROVIDER == "bedrock":
-            _client = anthropic.AnthropicBedrock(
-                aws_access_key=settings.AWS_ACCESS_KEY_ID,
-                aws_secret_key=settings.AWS_SECRET_ACCESS_KEY,
-                aws_region=settings.BEDROCK_REGION,
-            )
-        elif settings.AI_PROVIDER == "gemini":
-           _client = GeminiClient()
-        else:
-            _client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+        _client = GeminiClient()
     return _client
 
 def get_model() -> str:
-    """Returns the correct model ID based on provider."""
-    if settings.AI_PROVIDER == "bedrock":
-        return getattr(settings, "BEDROCK_MODEL_ID", "anthropic.claude-sonnet-4-6-20250514")
-    elif settings.AI_PROVIDER == "anthropic":
-        return getattr(settings, "CLAUDE_MODEL", "claude-sonnet-4-6")
+    """Returns the correct model ID."""
     return "gemini-1.5-flash"
 
 
