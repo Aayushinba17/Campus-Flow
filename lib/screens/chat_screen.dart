@@ -37,15 +37,16 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _loadHistory() async {
     try {
       final history = await _api.getChatHistory();
-      setState(() {
-        _messages = history.take(20).map((h) => <String, dynamic>{
-          'role': 'user', 'content': h['user_msg'],
-          'ts': h['created_at'],
-        }).expand((m) {
-          _messages.firstWhere((x) => x['content'] == m['content'], orElse: () => {});
-          return [m];
-        }).toList();
-      });
+      final List<Map<String, dynamic>> loaded = [];
+      for (final h in history.take(20)) {
+        if (h['user_msg'] != null) {
+          loaded.add({'role': 'user', 'content': h['user_msg'], 'ts': h['created_at'] ?? ''});
+        }
+        if (h['assistant_msg'] != null) {
+          loaded.add({'role': 'assistant', 'content': h['assistant_msg'], 'ts': h['created_at'] ?? ''});
+        }
+      }
+      setState(() => _messages = loaded);
     } catch (_) {}
   }
 
@@ -71,8 +72,11 @@ class _ChatScreenState extends State<ChatScreen> {
         _loading = false;
       });
     } catch (e) {
+      final errMsg = e.toString().contains('SocketException') || e.toString().contains('TimeoutException')
+          ? 'Connection error. Check your internet.'
+          : 'Error: ${e.toString().replaceAll('Exception: ', '')}';
       setState(() {
-        _messages.add({'role': 'assistant', 'content': 'Connection error. Check your internet.', 'ts': ''});
+        _messages.add({'role': 'assistant', 'content': errMsg, 'ts': ''});
         _loading = false;
       });
     }

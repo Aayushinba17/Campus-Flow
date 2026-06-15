@@ -209,11 +209,28 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
                     ),
                   );
                   try {
+                    // Derive package name & display name from the selected app
+                    const appPackages = {
+                      'WhatsApp':  'com.whatsapp',
+                      'Telegram':  'org.telegram.messenger',
+                      'SMS':       'com.android.mms',
+                      'Gmail':     'com.google.android.gm',
+                      'Other':     'com.unknown.app',
+                    };
+                    final bodyText = bodyCtrl.text.trim();
+                    // Use first ~60 chars of the message as the notification title
+                    final titleText = bodyText.length > 60
+                        ? '${bodyText.substring(0, 60)}…'
+                        : bodyText;
+
                     await _api.ingestNotifications([{
-                      'source_app': selectedApp,
-                      'sender': senderCtrl.text.isNotEmpty ? senderCtrl.text : 'Unknown',
-                      'body': bodyCtrl.text.trim(),
-                      'timestamp': DateTime.now().toIso8601String(),
+                      'source_app':  selectedApp,
+                      'app_package': appPackages[selectedApp] ?? 'com.unknown.app',
+                      'app_name':    selectedApp,
+                      'title':       titleText,
+                      'sender':      senderCtrl.text.isNotEmpty ? senderCtrl.text : 'Unknown',
+                      'body':        bodyText,
+                      'timestamp':   DateTime.now().toIso8601String(),
                     }]);
                     if (mounted) Navigator.pop(context);
                     _loadAll();

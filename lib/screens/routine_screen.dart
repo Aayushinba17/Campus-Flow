@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:app_usage/app_usage.dart';
 import '../services/api_service.dart';
+import '../services/activity_context_service.dart';
+import '../services/usage_stats_service.dart';
 
 class RoutineScreen extends StatefulWidget {
   const RoutineScreen({super.key});
@@ -11,32 +14,119 @@ class RoutineScreen extends StatefulWidget {
 
 class _RoutineScreenState extends State<RoutineScreen> {
   final _api = ApiService();
+  final _activityService = ActivityContextService();
+  final _usageService = UsageStatsService();
 
-  Map<String, dynamic>? _heatmap;
+  // On-device screen time data (7-day map: date -> minutes)
+  Map<String, double> _localUsageByDay = {};
+  double _localTotalMinutes = 0;
+  double _localAvgMinutes = 0;
+
   Map<String, dynamic>? _sleepSummary;
   Map<String, dynamic>? _insights;
-  Map<String, dynamic>? _currentContext;
+
+  // Local activity context (no backend dependency)
+  String _currentActivity = 'idle';
+  bool _screenOn = false;
+
   bool _loading = true;
   bool _insightsLoading = false;
+  bool _usagePermissionDenied = false;
 
   @override
-  void initState() { super.initState(); _loadData(); }
+  void initState() {
+    super.initState();
+    _loadData();
+  }
 
   Future<void> _loadData() async {
     setState(() => _loading = true);
+    await Future.wait([
+      _loadLocalUsage(),
+      _loadSleep(),
+      _loadLocalContext(),
+    ]);
+    setState(() => _loading = false);
+  }
+
+  /// Read screen time directly from the device (no backend needed)
+  Future<void> _loadLocalUsage() async {
     try {
-      final results = await Future.wait([
-        _api.getUsageHeatmap(),
-        _api.getSleepSummary(),
-        _api.getCurrentContext(),
-      ]);
+      final now = DateTime.now();
+      final Map<String, double> byDay = {};
+      double total = 0;
+
+      for (int i = 6; i >= 0; i--) {
+        final day = now.subtract(Duration(days: i));
+        final start = DateTime(day.year, day.month, day.day);
+        final end = i == 0 ? now : DateTime(day.year, day.month, day.day, 23, 59, 59);
+
+        final label = '${_dayLabel(day.weekday)}'; // Mon, Tue…
+        try {
+          final infos = await AppUsage().getAppUsage(start, end);
+          double minutes = 0;
+          for (final info in infos) {
+            final m = info.usage.inSeconds / 60.0;
+            if (m < 0.5) continue; // skip negligible
+            final lower = info.appName.toLowerCase();
+            // Skip system noise
+            if (['android', 'launcher', 'systemui', 'inputmethod', 'keyboard',
+                 'setup', 'provision'].any((s) => lower.contains(s))) continue;
+            minutes += m;
+          }
+          byDay[label] = minutes;
+          total += minutes;
+        } catch (_) {
+          byDay[label] = 0;
+        }
+      }
+
       setState(() {
-        _heatmap = results[0];
-        _sleepSummary = results[1];
-        _currentContext = results[2];
-        _loading = false;
+        _localUsageByDay = byDay;
+        _localTotalMinutes = total;
+        _localAvgMinutes = total / 7;
+        _usagePermissionDenied = false;
       });
-    } catch (e) { setState(() => _loading = false); }
+
+      // Also flush aggregated data to backend in the background
+      try {
+        final stats = await _usageService.getDailyStats();
+        if ((stats['total_screen_minutes'] as int) > 0) {
+          _usageService.logUsage(
+            appName: 'total',
+            durationSeconds: (stats['total_screen_minutes'] as int) * 60,
+          );
+          await _usageService.flush();
+        }
+      } catch (_) {}
+    } catch (e) {
+      // Permission denied or unavailable
+      setState(() {
+        _usagePermissionDenied = true;
+        _localUsageByDay = {};
+      });
+    }
+  }
+
+  /// Read local context — no network call
+  Future<void> _loadLocalContext() async {
+    setState(() {
+      _currentActivity = _activityService.currentActivity;
+      _screenOn = true; // if this screen is open, screen is on
+    });
+  }
+
+  Future<void> _loadSleep() async {
+    try {
+      _sleepSummary = await _api.getSleepSummary();
+    } catch (_) {
+      _sleepSummary = {};
+    }
+  }
+
+  String _dayLabel(int weekday) {
+    const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return labels[(weekday - 1).clamp(0, 6)];
   }
 
   @override
@@ -62,11 +152,11 @@ class _RoutineScreenState extends State<RoutineScreen> {
           : RefreshIndicator(
               onRefresh: _loadData,
               child: ListView(padding: const EdgeInsets.all(16), children: [
-                // Current Activity Context
-                if (_currentContext != null) _contextCard(),
+                // Current Activity Context (local — no backend)
+                _contextCard(),
                 const SizedBox(height: 16),
 
-                // Screen Time Heatmap
+                // Screen Time from device
                 _screenTimeSection(),
                 const SizedBox(height: 16),
 
@@ -83,26 +173,38 @@ class _RoutineScreenState extends State<RoutineScreen> {
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  CURRENT CONTEXT
+  //  CURRENT CONTEXT  (reads from local ActivityContextService)
   // ═══════════════════════════════════════════════════════════════════════
 
   Widget _contextCard() {
-    final ctx = _currentContext!;
-    final activity = ctx['context'] ?? 'Unknown';
     final activityIcons = {
-      'studying': Icons.school, 'browsing': Icons.language,
-      'idle': Icons.phone_android, 'gaming': Icons.sports_esports,
-      'social_media': Icons.people, 'messaging': Icons.chat_bubble,
+      'studying': Icons.school,
+      'browsing': Icons.language,
+      'idle': Icons.phone_android,
+      'gaming': Icons.sports_esports,
+      'social_media': Icons.people,
+      'messaging': Icons.chat_bubble,
     };
 
-    final screenOn = ctx['screen_on'] == true;
-    final headphones = ctx['headphones_connected'] == true;
+    final activityColors = {
+      'studying': const Color(0xFF059669),
+      'browsing': const Color(0xFF6366F1),
+      'gaming': const Color(0xFFE8592B),
+      'social_media': const Color(0xFF8B5CF6),
+      'messaging': const Color(0xFF0EA5E9),
+      'idle': const Color(0xFF6B7280),
+    };
+
+    final color = activityColors[_currentActivity] ?? const Color(0xFF6366F1);
+    final label = _currentActivity == 'idle'
+        ? 'Idle / Screen Off'
+        : _currentActivity.replaceAll('_', ' ').toUpperCase();
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+        gradient: LinearGradient(
+          colors: [color, color.withValues(alpha: 0.7)],
           begin: Alignment.topLeft, end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
@@ -111,44 +213,30 @@ class _RoutineScreenState extends State<RoutineScreen> {
         Container(
           width: 50, height: 50,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(14)),
-          child: Icon(activityIcons[activity] ?? Icons.phone_android, color: Colors.white, size: 24),
+            color: Colors.white.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(14)),
+          child: Icon(activityIcons[_currentActivity] ?? Icons.phone_android,
+              color: Colors.white, size: 24),
         ),
         const SizedBox(width: 14),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Current Context', style: TextStyle(color: Colors.white70, fontSize: 12)),
-          Text(activity.toString().replaceAll('_', ' ').toUpperCase(),
+          const Text('Current Activity', style: TextStyle(color: Colors.white70, fontSize: 12)),
+          Text(label,
             style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-          if (ctx['last_updated'] != null)
-            Text('Last active: ${_formatTime(ctx['last_updated'])}', style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12)),
+          Text('Tracked on-device • updates as you use apps',
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 11)),
         ])),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (screenOn) const Icon(Icons.screen_lock_portrait, color: Colors.white, size: 16),
-            if (headphones) const Icon(Icons.headphones, color: Colors.white, size: 16),
-          ],
-        )
+        if (_screenOn)
+          const Icon(Icons.screen_lock_portrait, color: Colors.white70, size: 18),
       ]),
     );
   }
 
-  String _formatTime(String isoTime) {
-    try {
-      final dt = DateTime.parse(isoTime).toLocal();
-      return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-    } catch (_) {
-      return isoTime;
-    }
-  }
-
   // ═══════════════════════════════════════════════════════════════════════
-  //  SCREEN TIME HEATMAP
+  //  SCREEN TIME (from device via app_usage)
   // ═══════════════════════════════════════════════════════════════════════
 
   Widget _screenTimeSection() {
-    final heatData = _heatmap?['heatmap'] as Map<String, dynamic>? ?? {};
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
@@ -158,26 +246,27 @@ class _RoutineScreenState extends State<RoutineScreen> {
           SizedBox(width: 8),
           Text('Screen Time', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         ]),
-        const SizedBox(height: 6),
-        Text('Last 7 days',
+        const SizedBox(height: 4),
+        Text('Last 7 days • live from your device',
           style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
         const SizedBox(height: 16),
 
-        if (heatData.isNotEmpty) ...[
-          // Bar chart
+        if (_usagePermissionDenied)
+          _permissionBanner()
+        else if (_localUsageByDay.isEmpty || _localUsageByDay.values.every((v) => v == 0))
+          _noDataPlaceholder()
+        else ...[
           SizedBox(
             height: 160,
             child: BarChart(BarChartData(
               alignment: BarChartAlignment.spaceAround,
-              maxY: _getMaxUsage(heatData) * 1.2,
+              maxY: (_localUsageByDay.values.reduce((a, b) => a > b ? a : b) * 1.25).clamp(10, double.infinity),
               barTouchData: BarTouchData(
                 touchTooltipData: BarTouchTooltipData(
-                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                    return BarTooltipItem(
-                      '${rod.toY.toStringAsFixed(0)} min',
-                      const TextStyle(color: Colors.white, fontSize: 12),
-                    );
-                  },
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) => BarTooltipItem(
+                    '${rod.toY.toStringAsFixed(0)} min',
+                    const TextStyle(color: Colors.white, fontSize: 12),
+                  ),
                 ),
               ),
               titlesData: FlTitlesData(
@@ -187,15 +276,12 @@ class _RoutineScreenState extends State<RoutineScreen> {
                 bottomTitles: AxisTitles(sideTitles: SideTitles(
                   showTitles: true,
                   getTitlesWidget: (value, meta) {
-                    final days = heatData.keys.toList();
+                    final days = _localUsageByDay.keys.toList();
                     if (value.toInt() < days.length) {
-                      final day = days[value.toInt()];
                       return Padding(
                         padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          day.length >= 3 ? day.substring(0, 3) : day,
-                          style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-                        ),
+                        child: Text(days[value.toInt()],
+                          style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
                       );
                     }
                     return const SizedBox.shrink();
@@ -204,12 +290,11 @@ class _RoutineScreenState extends State<RoutineScreen> {
               ),
               borderData: FlBorderData(show: false),
               gridData: const FlGridData(show: false),
-              barGroups: heatData.entries.toList().asMap().entries.map((entry) {
-                final value = (entry.value.value as num?)?.toDouble() ?? 0;
+              barGroups: _localUsageByDay.entries.toList().asMap().entries.map((e) {
                 return BarChartGroupData(
-                  x: entry.key,
+                  x: e.key,
                   barRods: [BarChartRodData(
-                    toY: value,
+                    toY: e.value.value,
                     width: 24,
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
                     gradient: const LinearGradient(
@@ -222,32 +307,67 @@ class _RoutineScreenState extends State<RoutineScreen> {
             )),
           ),
           const SizedBox(height: 12),
-          // Total
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Text('Total: ${_heatmap?['total_minutes'] ?? 0} min',
+            Text('Total: ${_localTotalMinutes.toStringAsFixed(0)} min',
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
             const SizedBox(width: 16),
-            Text('Avg: ${_heatmap?['avg_daily_minutes'] ?? 0} min/day',
+            Text('Avg: ${_localAvgMinutes.toStringAsFixed(0)} min/day',
               style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
           ]),
-        ] else ...[
-          Container(
-            height: 120,
-            alignment: Alignment.center,
-            child: Text('No usage data yet', style: TextStyle(color: Colors.grey.shade400)),
-          ),
         ],
       ]),
     );
   }
 
-  double _getMaxUsage(Map<String, dynamic> data) {
-    double max = 0;
-    for (final v in data.values) {
-      final val = (v as num?)?.toDouble() ?? 0;
-      if (val > max) max = val;
-    }
-    return max == 0 ? 100 : max;
+  Widget _permissionBanner() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7ED),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE8592B).withValues(alpha: 0.3)),
+      ),
+      child: Column(children: [
+        const Icon(Icons.lock_outline, color: Color(0xFFE8592B), size: 28),
+        const SizedBox(height: 8),
+        const Text('Usage Access Required',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        const SizedBox(height: 4),
+        Text('Grant "Usage Access" in Settings so CampusFlow can show your screen time.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+        const SizedBox(height: 12),
+        ElevatedButton.icon(
+          onPressed: () async {
+            // AppUsage package requires the user to go to Settings manually
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Go to Settings → Apps → Special app access → Usage access → CampusFlow')),
+            );
+          },
+          icon: const Icon(Icons.settings_outlined, size: 16),
+          label: const Text('How to grant access'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFE8592B),
+            foregroundColor: Colors.white,
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _noDataPlaceholder() {
+    return Container(
+      height: 100,
+      alignment: Alignment.center,
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(Icons.hourglass_empty, size: 28, color: Colors.grey.shade300),
+        const SizedBox(height: 8),
+        Text('No usage recorded yet today',
+          style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
+        Text('Data builds up as you use your phone',
+          style: TextStyle(color: Colors.grey.shade400, fontSize: 11)),
+      ]),
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -322,7 +442,6 @@ class _RoutineScreenState extends State<RoutineScreen> {
           ),
 
         const SizedBox(height: 8),
-        // Manual sleep log
         GestureDetector(
           onTap: _showSleepLogSheet,
           child: Container(
@@ -368,14 +487,14 @@ class _RoutineScreenState extends State<RoutineScreen> {
           const SizedBox(height: 12),
           const Text('Recommendations:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
           const SizedBox(height: 6),
-          ...(((_insights!['recommendations'] as List).take(3).map((r) => Padding(
+          ...((_insights!['recommendations'] as List).take(3).map((r) => Padding(
             padding: const EdgeInsets.only(bottom: 4),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Icon(Icons.lightbulb_outline, color: Color(0xFFE8592B), size: 14),
               const SizedBox(width: 6),
               Expanded(child: Text(r.toString(), style: const TextStyle(fontSize: 13))),
             ]),
-          )))),
+          ))),
         ],
       ]),
     );
@@ -394,7 +513,7 @@ class _RoutineScreenState extends State<RoutineScreen> {
       setState(() => _insightsLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
       }
     }
   }
@@ -459,7 +578,7 @@ class _RoutineScreenState extends State<RoutineScreen> {
                 if (ctx.mounted) { Navigator.pop(ctx); _loadData(); }
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Sleep logged! 😴'), backgroundColor: Color(0xFF059669)));
+                    const SnackBar(content: Text('Sleep logged! 😴'), backgroundColor: Color(0xFF059669)));
                 }
               },
               style: ElevatedButton.styleFrom(

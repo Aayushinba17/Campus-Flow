@@ -600,7 +600,7 @@ async def extract_deadlines_from_notifications(req: DeadlineExtractionRequest):
             "deadline_time": dl.get("deadline_time"),
             "status": "pending_confirmation",
             "source": "deadline_extraction",
-            "source_app": dl.get("source_app", "unknown"),
+            "source_app": dl.get("source_app", "unknown"),  
             "source_message_preview": dl.get("source_message_preview", ""),
             "priority": 4 if dl.get("urgency") == "high" else 3,
             "confidence": str(confidence),
