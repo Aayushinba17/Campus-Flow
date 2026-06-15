@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../services/user_service.dart';
+import '../services/usage_stats_service.dart';
 import 'schedule_screen.dart';
 import 'notifications_screen.dart';
 import 'chat_screen.dart';
@@ -27,10 +28,30 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _stressDensity;
   bool _loading = true;
   String _userName = 'Student';
+  int _screenOnMinutesToday = 0;
+  int _studyMinutesToday = 0;
 
   @override
   void initState() {
     super.initState();
+    _loadDashboard();
+    _loadUserName();
+    _loadUsageStats();
+  }
+
+  Future<void> _loadUsageStats() async {
+    try {
+      final stats = await UsageStatsService().getDailyStats();
+      if (mounted) {
+        setState(() {
+          _screenOnMinutesToday = stats['total_screen_minutes'] as int? ?? 0;
+          _studyMinutesToday = stats['study_minutes'] as int? ?? 0;
+        });
+      }
+    } catch (_) {
+      // Usage stats unavailable (permission not granted) — keep defaults
+    }
+  }
     _loadDashboard();
     _loadUserName();
   }
@@ -469,4 +490,3 @@ class _HomeScreenState extends State<HomeScreen> {
     if (hour < 17) return 'Good afternoon 👋';
     return 'Good evening 👋';
   }
-}

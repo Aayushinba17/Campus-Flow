@@ -79,6 +79,7 @@ class ScheduleClassItem {
 class WellnessContext {
   final List<ScheduleClassItem> schedule;
   final int screenOnMinutesToday;
+  final int studyMinutesToday;       // minutes spent on productivity/study apps
   final String? lastScreenOffTime;
   final String currentTime;
   final String dateLabel;
@@ -92,6 +93,7 @@ class WellnessContext {
   WellnessContext({
     this.schedule = const [],
     this.screenOnMinutesToday = 0,
+    this.studyMinutesToday = 0,
     this.lastScreenOffTime,
     String? currentTime,
     this.dateLabel = '',
@@ -117,6 +119,7 @@ class WellnessContext {
   Map<String, dynamic> toJson() => {
         'schedule': schedule.map((s) => s.toJson()).toList(),
         'screen_on_minutes_today': screenOnMinutesToday,
+        'study_minutes_today': studyMinutesToday,
         'last_screen_off_time': lastScreenOffTime,
         'current_time': currentTime,
         'date_label': dateLabel,

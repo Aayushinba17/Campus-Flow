@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:io';
 import '../services/api_service.dart';
+import '../utils/time_utils.dart';
 
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
@@ -217,12 +218,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
             child: Row(children: [
               // Time column
               SizedBox(
-                width: 60,
-                child: Column(children: [
-                  Text(cls['start_time'] ?? '', style: TextStyle(
+                width: 72,
+                child: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                  Text(TimeUtils.format12h(cls['start_time'] ?? ''), style: TextStyle(
                     fontWeight: FontWeight.w600, fontSize: 13,
                     color: isNow ? const Color(0xFFE8592B) : Colors.black87)),
-                  Text(cls['end_time'] ?? '', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                  Text(TimeUtils.format12h(cls['end_time'] ?? ''), style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
                 ]),
               ),
               // Timeline dot
@@ -322,7 +323,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
               Row(children: [
                 const Icon(Icons.schedule, color: Color(0xFF059669), size: 16),
                 const SizedBox(width: 6),
-                Text('${slot['start']} – ${slot['end']}',
+                Text('${TimeUtils.format12h(slot['start'] ?? '')} – ${TimeUtils.format12h(slot['end'] ?? '')}',
                   style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF059669))),
               ]),
               const SizedBox(height: 4),
@@ -407,13 +408,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(child: Text(
-                  '${cls['start_time'] ?? ''}',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFE8592B)),
+                  TimeUtils.format12h(cls['start_time'] ?? ''),
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFFE8592B)),
                 )),
               ),
               title: Text(cls['subject'] ?? '', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
               subtitle: Text('${cls['room'] ?? ''} • ${cls['professor'] ?? ''}', style: const TextStyle(fontSize: 12)),
-              trailing: Text(cls['end_time'] ?? '', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+              trailing: Text(TimeUtils.format12h(cls['end_time'] ?? ''), style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
             )).toList()),
           ),
           const SizedBox(height: 16),

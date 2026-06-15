@@ -477,10 +477,18 @@ class _WellnessScreenState extends State<WellnessScreen> {
 
   Future<void> _loadWeeklySummary() async {
     setState(() => _loadingWeekly = true);
+    // screenOnMinutesToday is total screen time; use it as total
+    // study time = productivity apps usage (passed from context)
+    // leisure = total - study
+    final totalMins = widget.ctx.screenOnMinutesToday;
+    final studyMins = widget.ctx.studyMinutesToday;
+    final leisureMins = (totalMins - studyMins).clamp(0, totalMins);
+
     final summary = await WellnessService.getWeeklySummary(
       ctx: widget.ctx,
-      studyMinutes: widget.ctx.screenOnMinutesToday,
-      totalScreenMinutes: widget.ctx.screenOnMinutesToday,
+      studyMinutes: studyMins,
+      leisureMinutes: leisureMins,
+      totalScreenMinutes: totalMins,
     );
     setState(() {
       _weeklySummary = summary;
@@ -809,7 +817,7 @@ class _SleepReminderCard extends StatefulWidget {
 
 class _SleepReminderCardState extends State<_SleepReminderCard> {
   String _sleepGoal = '11:00 PM';
-  final String _wakeGoal = '07:00 AM';
+  String _wakeGoal = '07:00 AM'; // derived from schedule
 
   // Calculate recommended sleep from tomorrow's first class
   String _getRecommendedBedtime(String firstClassTime) {
@@ -817,8 +825,8 @@ class _SleepReminderCardState extends State<_SleepReminderCard> {
       final parts = firstClassTime.split(':');
       final classHour = int.parse(parts[0]);
       final classMin = int.parse(parts[1]);
-      final wakeTotal = classHour * 60 + classMin - 45;
-      final bedTotal = wakeTotal - 450; // 7.5 hrs
+      final wakeTotal = classHour * 60 + classMin - 30; // 30 min to get ready
+      final bedTotal = wakeTotal - 450; // 7.5 hrs sleep
       final bedHour = bedTotal ~/ 60 % 24;
       final bedMin = bedTotal % 60;
       final period = bedHour >= 12 ? 'PM' : 'AM';
@@ -826,6 +834,23 @@ class _SleepReminderCardState extends State<_SleepReminderCard> {
       return '$displayHour:${bedMin.toString().padLeft(2, '0')} $period';
     } catch (e) {
       return '11:00 PM';
+    }
+  }
+
+  // Calculate wake-up goal 30 minutes before first class
+  String _getWakeGoal(String firstClassTime) {
+    try {
+      final parts = firstClassTime.split(':');
+      final classHour = int.parse(parts[0]);
+      final classMin = int.parse(parts[1]);
+      final wakeTotal = classHour * 60 + classMin - 30;
+      final wakeHour = (wakeTotal ~/ 60) % 24;
+      final wakeMin = wakeTotal % 60;
+      final period = wakeHour >= 12 ? 'PM' : 'AM';
+      final displayHour = wakeHour > 12 ? wakeHour - 12 : (wakeHour == 0 ? 12 : wakeHour);
+      return '$displayHour:${wakeMin.toString().padLeft(2, '0')} $period';
+    } catch (e) {
+      return '07:00 AM';
     }
   }
 
@@ -838,6 +863,7 @@ class _SleepReminderCardState extends State<_SleepReminderCard> {
           .map((c) => c.time)
           .reduce((a, b) => a.compareTo(b) < 0 ? a : b);
       _sleepGoal = _getRecommendedBedtime(firstClass);
+      _wakeGoal = _getWakeGoal(firstClass);
     }
 
     return _WellnessCard(

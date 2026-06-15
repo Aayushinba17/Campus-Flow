@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:speech_to_text/speech_recognition_error.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
 import '../services/api_service.dart';
 
 class TaskBoardScreen extends StatefulWidget {
@@ -17,7 +19,9 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> with SingleTickerProv
   List<dynamic> _allTasks = [];
   bool _loading = true;
   bool _listening = false;
+  bool _speechInitialized = false;
   String _liveTranscript = '';
+  String _speechError = '';
 
   @override
   void initState() {
@@ -498,12 +502,29 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> with SingleTickerProv
             const SizedBox(height: 16),
 
             Text(
-              _listening ? 'Listening...' : 'Tap to start',
+              _listening ? 'Listening...' : (_speechError.isNotEmpty ? 'Tap to retry' : 'Tap to start'),
               style: TextStyle(
-                color: _listening ? Colors.red : Colors.grey.shade500,
+                color: _listening ? Colors.red : (_speechError.isNotEmpty ? Colors.orange : Colors.grey.shade500),
                 fontWeight: FontWeight.w500,
               ),
             ),
+
+            // Error message
+            if (_speechError.isNotEmpty) ...[ 
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Error: $_speechError\nMake sure microphone permission is granted.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+                ),
+              ),
+            ],
 
             // Live transcript
             if (_liveTranscript.isNotEmpty) ...[
@@ -544,37 +565,72 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> with SingleTickerProv
 
   Future<void> _toggleListening(StateSetter setSheetState) async {
     if (_listening) {
-      _speech.stop();
-      setSheetState(() => _listening = false);
+      await _speech.stop();
+      setSheetState(() { _listening = false; });
 
       if (_liveTranscript.isNotEmpty) {
-        Navigator.pop(context);
-        _processVoiceNote(_liveTranscript);
+        final text = _liveTranscript;
+        setState(() => _liveTranscript = '');
+        if (mounted) Navigator.pop(context);
+        _processVoiceNote(text);
       }
-    } else {
-      final available = await _speech.initialize();
+      return;
+    }
+
+    // Initialize speech engine if not done yet
+    if (!_speechInitialized) {
+      final available = await _speech.initialize(
+        onError: (SpeechRecognitionError error) {
+          setSheetState(() {
+            _listening = false;
+            _speechError = error.errorMsg;
+          });
+        },
+        onStatus: (String status) {
+          if (status == 'done' || status == 'notListening') {
+            setSheetState(() => _listening = false);
+          }
+        },
+        debugLogging: false,
+      );
       if (!available) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Microphone not available')));
+            const SnackBar(
+              content: Text('Microphone not available. Check app permissions in Settings.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 4),
+            ),
+          );
         }
         return;
       }
-
-      setSheetState(() { _listening = true; _liveTranscript = ''; });
-
-      _speech.listen(
-        onResult: (result) {
-          setSheetState(() => _liveTranscript = result.recognizedWords);
-          if (result.finalResult) {
-            setSheetState(() => _listening = false);
-            Navigator.pop(context);
-            _processVoiceNote(result.recognizedWords);
-          }
-        },
-        listenOptions: SpeechListenOptions(listenFor: const Duration(seconds: 30)),
-      );
+      setState(() { _speechInitialized = true; });
     }
+
+    setSheetState(() {
+      _listening = true;
+      _liveTranscript = '';
+      _speechError = '';
+    });
+
+    await _speech.listen(
+      onResult: (SpeechRecognitionResult result) {
+        setSheetState(() => _liveTranscript = result.recognizedWords);
+        if (result.finalResult && result.recognizedWords.isNotEmpty) {
+          setSheetState(() => _listening = false);
+          final text = result.recognizedWords;
+          setState(() => _liveTranscript = '');
+          if (mounted) Navigator.pop(context);
+          _processVoiceNote(text);
+        }
+      },
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 4),
+      partialResults: true,
+      localeId: 'en_IN',
+      cancelOnError: false,
+    );
   }
 
   Future<void> _processVoiceNote(String text) async {
