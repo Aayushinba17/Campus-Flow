@@ -114,7 +114,8 @@ async def ingest_notifications(batch: NotificationBatch):
         # Store the raw notification (for digest, search, silence detection)
         item = {
             "user_id":      batch.user_id,
-            "notification_id": notif_id,
+            "notif_id":     notif_id,
+            "notification_id": notif_id, # Keep for API backward compatibility
             "app":          raw["app"],
             "app_package":  raw.get("app_package"),
             "title":        raw["title"],
@@ -348,9 +349,10 @@ async def mark_notifications_read(req: MarkReadRequest):
     target_ids = set(req.notification_ids)
 
     for item in all_items:
-        if item.get("notification_id") in target_ids:
+        n_id = item.get("notification_id") or item.get("notif_id")
+        if n_id in target_ids:
             notif_table.update_item(
-                Key={"user_id": req.user_id, "notification_id": item["notification_id"]},
+                Key={"user_id": req.user_id, "notif_id": item.get("notif_id", n_id)},
                 UpdateExpression="SET is_read = :r",
                 ExpressionAttributeValues={":r": True},
             )
