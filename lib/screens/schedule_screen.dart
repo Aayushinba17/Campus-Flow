@@ -65,8 +65,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('saved_exams', jsonEncode(_exams));
   }
-
-
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7),
       appBar: AppBar(
