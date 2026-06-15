@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import 'dart:io';
 import '../services/api_service.dart';
 
@@ -18,6 +20,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
   Map<String, dynamic>? _todayView;
   Map<String, dynamic>? _fullSchedule;
   Map<String, dynamic>? _examCountdown;
+  List<Map<String, dynamic>> _exams = []; // persisted exam list
   bool _loading = true;
 
   @override

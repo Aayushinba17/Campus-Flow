@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
+import '../services/user_service.dart';
 import 'schedule_screen.dart';
 import 'notifications_screen.dart';
 import 'chat_screen.dart';
@@ -25,13 +26,19 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _todayView;
   Map<String, dynamic>? _stressDensity;
   bool _loading = true;
+  String _userName = 'Student';
 
   @override
   void initState() {
     super.initState();
     _loadDashboard();
+    _loadUserName();
   }
 
+  Future<void> _loadUserName() async {
+    final name = await UserService.getUserName();
+    if (mounted) setState(() => _userName = name);
+  }
   Future<void> _loadDashboard() async {
     setState(() => _loading = true);
     try {
@@ -102,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(greeting,
+                  Text('$greeting, $_userName!',
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A1A2E))),
                   Text(dateStr,
                     style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.normal)),
@@ -117,7 +124,27 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               IconButton(
                 icon: const Icon(Icons.favorite_outline, color: Color(0xFFE8592B)),
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => WellnessScreen(ctx: WellnessContext()))),
+                onPressed: () {
+                  // Build WellnessContext from available data
+                  final classes = (_todayView?['classes'] as List?) ?? [];
+                  final scheduleItems = classes.map((c) {
+                    final cls = c as Map<String, dynamic>;
+                    return ScheduleClassItem(
+                      time: cls['start_time'] ?? '09:00',
+                      subject: cls['subject'] ?? '',
+                      room: cls['room'] ?? '',
+                    );
+                  }).toList();
+                  final deadlines = (_todayView?['due_today'] as List?) ?? [];
+                  Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => WellnessScreen(ctx: WellnessContext(
+                      schedule: scheduleItems,
+                      deadlinesIn48h: deadlines.length,
+                      currentTime: '${DateTime.now().hour.toString().padLeft(2,'0')}:${DateTime.now().minute.toString().padLeft(2,'0')}',
+                      dateLabel: DateFormat('EEEE').format(DateTime.now()),
+                    )),
+                  ));
+                },
                 tooltip: 'Wellness',
               ),
               IconButton(
@@ -376,7 +403,7 @@ class _HomeScreenState extends State<HomeScreen> {
           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
           child: Column(
             children: deadlines.take(5).map((d) {
-              final isUrgent = d['deadline'] == DateTime.now().toString().substring(0, 10);
+              final isUrgent = d['deadline'] == DateFormat('yyyy-MM-dd').format(DateTime.now());
               return ListTile(
                 leading: Icon(Icons.flag_outlined,
                   color: isUrgent ? Colors.red : const Color(0xFFE8592B)),
@@ -416,14 +443,24 @@ class _HomeScreenState extends State<HomeScreen> {
     ]),
   );
 
-  Widget _emptyDigestCard() => Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: const Color(0xFFE8592B).withValues(alpha: 0.08),
-      borderRadius: BorderRadius.circular(20),
+  Widget _emptyDigestCard() => GestureDetector(
+    onTap: _loadDashboard,
+    child: Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8592B).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE8592B).withValues(alpha: 0.2)),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.auto_awesome, color: Color(0xFFE8592B)),
+          SizedBox(width: 10),
+          Text('Tap to generate your morning briefing',
+            style: TextStyle(color: Color(0xFFE8592B), fontWeight: FontWeight.w500)),
+        ],
+      ),
     ),
-    child: const Text('Tap to generate your morning briefing',
-      style: TextStyle(color: Color(0xFFE8592B), fontWeight: FontWeight.w500)),
   );
 
   String _getGreeting() {
