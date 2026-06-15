@@ -84,6 +84,14 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> with SingleTickerProv
               ],
             ),
       floatingActionButton: Column(mainAxisSize: MainAxisSize.min, children: [
+        // Text add FAB
+        FloatingActionButton.small(
+          heroTag: 'text',
+          onPressed: _showAddTaskSheet,
+          backgroundColor: Colors.white,
+          child: const Icon(Icons.add, color: Color(0xFFE8592B)),
+        ),
+        const SizedBox(height: 10),
         // Voice note FAB
         FloatingActionButton.small(
           heroTag: 'voice',
@@ -308,8 +316,138 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> with SingleTickerProv
   }
 
   // ═══════════════════════════════════════════════════════════════════════
-  //  VOICE NOTE TO TASKS
+  //  MANUAL TASK ADD (KEYBOARD)
   // ═══════════════════════════════════════════════════════════════════════
+
+  void _showAddTaskSheet() {
+    final titleCtrl = TextEditingController();
+    final deadlineCtrl = TextEditingController();
+    String selectedType = 'other';
+    int selectedPriority = 3;
+    final types = ['assignment', 'reminder', 'meeting', 'follow_up', 'other'];
+    final priorities = [1, 2, 3, 4, 5];
+    final priorityLabels = {1: 'Low', 2: 'Normal', 3: 'Medium', 4: 'High', 5: 'Urgent'};
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(builder: (ctx, setSheetState) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 16),
+              const Text('Add Task', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: titleCtrl,
+                autofocus: true,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(
+                  labelText: 'Task title *',
+                  hintText: 'e.g. Submit physics assignment',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.task_alt_outlined),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: deadlineCtrl,
+                readOnly: true,
+                decoration: InputDecoration(
+                  labelText: 'Deadline (optional)',
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.calendar_today, size: 18),
+                  suffixIcon: deadlineCtrl.text.isNotEmpty
+                      ? IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: () { setSheetState(() => deadlineCtrl.clear()); })
+                      : null,
+                ),
+                onTap: () async {
+                  final date = await showDatePicker(
+                    context: ctx,
+                    initialDate: DateTime.now().add(const Duration(days: 1)),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (date != null) setSheetState(() => deadlineCtrl.text = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}');
+                },
+              ),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(child: DropdownButtonFormField<String>(
+                  value: selectedType,
+                  decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                  items: types.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontSize: 13)))).toList(),
+                  onChanged: (v) => setSheetState(() => selectedType = v!),
+                )),
+                const SizedBox(width: 10),
+                Expanded(child: DropdownButtonFormField<int>(
+                  value: selectedPriority,
+                  decoration: const InputDecoration(labelText: 'Priority', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                  items: priorities.map((p) => DropdownMenuItem(value: p, child: Text(priorityLabels[p]!, style: const TextStyle(fontSize: 13)))).toList(),
+                  onChanged: (v) => setSheetState(() => selectedPriority = v!),
+                )),
+              ]),
+              const SizedBox(height: 20),
+              SizedBox(width: double.infinity, child: ElevatedButton(
+                onPressed: () async {
+                  if (titleCtrl.text.trim().isEmpty) return;
+                  Navigator.pop(ctx);
+                  // Use processVoiceNote with the typed text — same AI pipeline
+                  showDialog(context: context, barrierDismissible: false,
+                    builder: (_) => AlertDialog(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      content: const Row(children: [
+                        CircularProgressIndicator(color: Color(0xFFE8592B)),
+                        SizedBox(width: 16), Text('Adding task...'),
+                      ]),
+                    ),
+                  );
+                  try {
+                    // Build a natural-language string so the AI pipeline works the same
+                    String prompt = titleCtrl.text.trim();
+                    if (deadlineCtrl.text.isNotEmpty) prompt += ' by ${deadlineCtrl.text}';
+                    if (selectedType == 'follow_up') prompt = 'Follow up: $prompt';
+                    await _api.processVoiceNote(prompt);
+                    if (mounted) Navigator.pop(context);
+                    _loadTasks();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('✅ Task added!'),
+                        backgroundColor: Color(0xFF059669),
+                      ));
+                    }
+                  } catch (e) {
+                    if (mounted) Navigator.pop(context);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE8592B),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.all(14),
+                ),
+                child: const Text('Add Task', style: TextStyle(fontSize: 16)),
+              )),
+              const SizedBox(height: 8),
+            ]),
+          ),
+        );
+      }),
+    );
+  }
+
+
 
   void _showVoiceSheet() {
     showModalBottomSheet(
@@ -386,6 +524,17 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> with SingleTickerProv
             Text('Example: "Remind me to submit physics by Thursday\nand ask sir about the lab practical"',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 11, color: Colors.grey.shade400, fontStyle: FontStyle.italic)),
+            const SizedBox(height: 16),
+            // Keyboard fallback
+            TextButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                _showAddTaskSheet();
+              },
+              icon: const Icon(Icons.keyboard_alt_outlined, size: 16),
+              label: const Text('Type instead', style: TextStyle(fontSize: 13)),
+              style: TextButton.styleFrom(foregroundColor: Colors.grey.shade600),
+            ),
             const SizedBox(height: 20),
           ]),
         );

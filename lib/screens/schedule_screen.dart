@@ -19,8 +19,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
 
   Map<String, dynamic>? _todayView;
   Map<String, dynamic>? _fullSchedule;
-  Map<String, dynamic>? _examCountdown;
-  List<Map<String, dynamic>> _exams = []; // persisted exam list
+  List<Map<String, dynamic>> _exams = []; // persisted exam list with countdown data
   bool _loading = true;
 
   @override
@@ -28,6 +27,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _loadData();
+    _loadExamsFromPrefs();
   }
 
   @override
@@ -53,8 +53,20 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Future<void> _loadExamsFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('saved_exams');
+    if (raw != null) {
+      setState(() => _exams = List<Map<String, dynamic>>.from(jsonDecode(raw)));
+    }
+  }
+
+  Future<void> _saveExamsToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('saved_exams', jsonEncode(_exams));
+  }
+
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7),
       appBar: AppBar(
@@ -439,42 +451,60 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
         ),
         const SizedBox(height: 20),
 
-        // Countdown display
-        if (_examCountdown != null) ...[
-          _examCountdownCard(),
-          const SizedBox(height: 16),
-        ],
+        if (_exams.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+            child: Column(children: [
+              Icon(Icons.school_outlined, size: 48, color: Colors.grey.shade300),
+              const SizedBox(height: 12),
+              Text('No exams added yet', style: TextStyle(color: Colors.grey.shade500, fontSize: 15, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 4),
+              Text('Tap above to add an exam and get an AI study plan', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
+            ]),
+          )
+        else
+          ..._exams.asMap().entries.map((entry) {
+            final i = entry.key;
+            final ec = entry.value;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12)],
+              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  const Icon(Icons.timer_outlined, color: Color(0xFFE8592B)),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(ec['exam_name'] ?? 'Exam',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.grey, size: 20),
+                    onPressed: () {
+                      setState(() => _exams.removeAt(i));
+                      _saveExamsToPrefs();
+                    },
+                  ),
+                ]),
+                const SizedBox(height: 4),
+                Text('Date: ${ec['exam_date'] ?? ''}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                const SizedBox(height: 12),
+                Row(children: [
+                  _countdownBox(ec['days_left']?.toString() ?? '0', 'Days'),
+                  const SizedBox(width: 12),
+                  _countdownBox(ec['study_hours_available']?.toString() ?? '0', 'Study Hrs'),
+                ]),
+                if (ec['ai_plan'] != null) ...[
+                  const SizedBox(height: 12),
+                  Text(ec['ai_plan'], style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.5)),
+                ],
+              ]),
+            );
+          }),
       ],
-    );
-  }
-
-  Widget _examCountdownCard() {
-    final ec = _examCountdown!;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12)],
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          const Icon(Icons.timer_outlined, color: Color(0xFFE8592B)),
-          const SizedBox(width: 8),
-          Text(ec['exam_name'] ?? 'Exam',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        ]),
-        const SizedBox(height: 12),
-        Row(children: [
-          _countdownBox(ec['days_left']?.toString() ?? '0', 'Days'),
-          const SizedBox(width: 12),
-          _countdownBox(ec['study_hours_available']?.toString() ?? '0', 'Study Hrs'),
-        ]),
-        if (ec['ai_plan'] != null) ...[
-          const SizedBox(height: 12),
-          Text(ec['ai_plan'], style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.5)),
-        ],
-      ]),
     );
   }
 
@@ -667,7 +697,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
                         finalSubject, DateFormat('yyyy-MM-dd').format(selectedDate!),
                       );
                       if (mounted) Navigator.pop(context);
-                      setState(() => _examCountdown = result);
+                      setState(() {
+                        _exams.add({
+                          ...result,
+                          'exam_name': finalSubject,
+                          'exam_date': DateFormat('yyyy-MM-dd').format(selectedDate!),
+                        });
+                      });
+                      _saveExamsToPrefs();
                     } catch (e) {
                       if (mounted) Navigator.pop(context);
                     }

@@ -123,14 +123,123 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
               if (_stats != null) _statsBar(),
               const SizedBox(height: 12),
 
+              // Add notification manually button
+              GestureDetector(
+                onTap: _showAddNotificationSheet,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE8592B).withValues(alpha: 0.3)),
+                  ),
+                  child: const Row(children: [
+                    Icon(Icons.add_circle_outline, color: Color(0xFFE8592B), size: 22),
+                    SizedBox(width: 12),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Add Update / Message', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFFE8592B))),
+                      Text('Paste a WhatsApp / SMS message to extract deadlines', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    ])),
+                    Icon(Icons.chevron_right, color: Color(0xFFE8592B)),
+                  ]),
+                ),
+              ),
+
               // Notification list
               if (_notifications.isEmpty)
-                _emptyState('No notifications yet', 'Notifications from WhatsApp, Telegram, SMS will appear here')
+                _emptyState('No notifications yet', 'Add messages above to extract deadlines, or grant notification access in Settings')
               else
                 ...(_notifications.map((n) => _notificationTile(n as Map<String, dynamic>))),
             ]),
     );
   }
+
+  void _showAddNotificationSheet() {
+    final bodyCtrl = TextEditingController();
+    final senderCtrl = TextEditingController();
+    String selectedApp = 'WhatsApp';
+    final apps = ['WhatsApp', 'Telegram', 'SMS', 'Gmail', 'Other'];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(builder: (ctx, setSheetState) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Add Message / Update', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text('Paste a message — AI will extract deadlines & tasks', style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: senderCtrl,
+                decoration: const InputDecoration(labelText: 'Sender (e.g. Prof. Sharma)', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: bodyCtrl,
+                maxLines: 4,
+                decoration: const InputDecoration(labelText: 'Paste message here...', border: OutlineInputBorder(), alignLabelWithHint: true),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                value: selectedApp,
+                decoration: const InputDecoration(labelText: 'Source app', border: OutlineInputBorder()),
+                items: apps.map((a) => DropdownMenuItem(value: a, child: Text(a))).toList(),
+                onChanged: (v) => setSheetState(() => selectedApp = v!),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(width: double.infinity, child: ElevatedButton(
+                onPressed: () async {
+                  if (bodyCtrl.text.trim().isEmpty) return;
+                  Navigator.pop(ctx);
+                  showDialog(context: context, barrierDismissible: false,
+                    builder: (_) => AlertDialog(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      content: const Row(children: [
+                        CircularProgressIndicator(color: Color(0xFFE8592B)),
+                        SizedBox(width: 16), Text('AI extracting info...'),
+                      ]),
+                    ),
+                  );
+                  try {
+                    await _api.ingestNotifications([{
+                      'source_app': selectedApp,
+                      'sender': senderCtrl.text.isNotEmpty ? senderCtrl.text : 'Unknown',
+                      'body': bodyCtrl.text.trim(),
+                      'timestamp': DateTime.now().toIso8601String(),
+                    }]);
+                    if (mounted) Navigator.pop(context);
+                    _loadAll();
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Message added & analyzed!'), backgroundColor: Color(0xFF059669)),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) Navigator.pop(context);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE8592B), foregroundColor: Colors.white, padding: const EdgeInsets.all(14)),
+                child: const Text('Add & Extract'),
+              )),
+            ]),
+          ),
+        );
+      }),
+    );
+  }
+
 
   Widget _digestCard() {
     final d = _digest!;
