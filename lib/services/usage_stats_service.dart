@@ -80,4 +80,13 @@ class UsageStatsService {
     }
     return 'other';
   }
+
+  /// Get today's usage statistics
+  Future<Map<String, dynamic>> getDailyStats() async {
+    // Return mock or calculated stats here since app_usage plugin was reverted
+    return {
+      'total_screen_minutes': 0,
+      'study_minutes': 0,
+    };
+  }
 }

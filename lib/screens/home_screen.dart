@@ -52,10 +52,6 @@ class _HomeScreenState extends State<HomeScreen> {
       // Usage stats unavailable (permission not granted) — keep defaults
     }
   }
-    _loadDashboard();
-    _loadUserName();
-  }
-
   Future<void> _loadUserName() async {
     final name = await UserService.getUserName();
     if (mounted) setState(() => _userName = name);
@@ -490,3 +486,4 @@ class _HomeScreenState extends State<HomeScreen> {
     if (hour < 17) return 'Good afternoon 👋';
     return 'Good evening 👋';
   }
+}
