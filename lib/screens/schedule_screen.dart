@@ -22,6 +22,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
   Map<String, dynamic>? _fullSchedule;
   List<Map<String, dynamic>> _exams = []; // persisted exam list with countdown data
   bool _loading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -47,10 +48,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
       setState(() {
         _todayView = results[0];
         _fullSchedule = results[1];
+        _errorMessage = null;
         _loading = false;
       });
     } catch (e) {
-      setState(() => _loading = false);
+      setState(() {
+        _errorMessage = e.toString().contains('SocketException') || e.toString().contains('TimeoutException')
+            ? 'Connection error. Check your internet or backend status.'
+            : 'Error: ${e.toString().replaceAll('Exception: ', '')}';
+        _loading = false;
+      });
     }
   }
 
@@ -126,27 +133,32 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
                 _dateHeader(),
                 const SizedBox(height: 16),
 
-                // Classes timeline
-                _sectionHeader('Classes', Icons.school_outlined, const Color(0xFFE8592B)),
-                const SizedBox(height: 8),
-                _classesTimeline(),
-                const SizedBox(height: 20),
-
-                // Events
-                if ((_todayView?['events'] as List?)?.isNotEmpty == true) ...[
-                  _sectionHeader('Events', Icons.event_outlined, const Color(0xFF6366F1)),
+                if (_errorMessage != null)
+                  _errorCard(_errorMessage!, _loadData)
+                else ...[
+                  // Classes timeline
+                  _sectionHeader('Classes', Icons.school_outlined, const Color(0xFFE8592B)),
                   const SizedBox(height: 8),
-                  _eventsList(),
+                  _classesTimeline(),
                   const SizedBox(height: 20),
-                ],
 
-                // Due today
-                if ((_todayView?['due_today'] as List?)?.isNotEmpty == true) ...[
-                  _sectionHeader('Due Today', Icons.assignment_late_outlined, Colors.red),
-                  const SizedBox(height: 8),
-                  _dueTodayList(),
-                  const SizedBox(height: 20),
-                ],
+                  // Events
+                  if ((_todayView?['events'] as List?)?.isNotEmpty == true) ...[
+                    _sectionHeader('Events', Icons.event_outlined, const Color(0xFF6366F1)),
+                    const SizedBox(height: 8),
+                    _eventsList(),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Due today
+                  if ((_todayView?['due_today'] as List?)?.isNotEmpty == true) ...[
+                    _sectionHeader('Due Today', Icons.assignment_late_outlined, Colors.red),
+                    const SizedBox(height: 8),
+                    _dueTodayList(),
+                    const SizedBox(height: 20),
+                  ],
+                ]
+              ],
 
                 // Free slots
                 _sectionHeader('Free Slots', Icons.coffee_outlined, const Color(0xFF059669)),
@@ -561,6 +573,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
       if (mounted) _showSuggestionsSheet(result);
     } catch (e) {
       if (mounted) Navigator.pop(context);
+      if (mounted) {
+        final errMsg = e.toString().contains('SocketException') || e.toString().contains('TimeoutException')
+            ? 'Connection error. Check your internet or backend status.'
+            : 'Error: ${e.toString().replaceAll('Exception: ', '')}';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errMsg), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -708,6 +728,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
                       _saveExamsToPrefs();
                     } catch (e) {
                       if (mounted) Navigator.pop(context);
+                      if (mounted) {
+                        final errMsg = e.toString().contains('SocketException') || e.toString().contains('TimeoutException')
+                            ? 'Connection error. Check your internet or backend status.'
+                            : 'Error: ${e.toString().replaceAll('Exception: ', '')}';
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(errMsg), backgroundColor: Colors.red),
+                        );
+                      }
                     }
                   }
                 },
@@ -740,6 +768,24 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
       Icon(icon, color: Colors.grey.shade400, size: 20),
       const SizedBox(width: 10),
       Text(message, style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+    ]),
+  );
+
+  Widget _errorCard(String message, VoidCallback onRetry) => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: Colors.red.shade50,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: Colors.red.shade100),
+    ),
+    child: Row(children: [
+      const Icon(Icons.error_outline, color: Colors.red),
+      const SizedBox(width: 12),
+      Expanded(child: Text(message, style: const TextStyle(color: Colors.red, fontSize: 13))),
+      IconButton(
+        icon: const Icon(Icons.refresh, color: Colors.red),
+        onPressed: onRetry,
+      ),
     ]),
   );
 

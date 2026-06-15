@@ -27,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _todayView;
   Map<String, dynamic>? _stressDensity;
   bool _loading = true;
+  String? _errorMessage;
   String _userName = 'Student';
   int _screenOnMinutesToday = 0;
   int _studyMinutesToday = 0;
@@ -68,10 +69,16 @@ class _HomeScreenState extends State<HomeScreen> {
         _digest       = results[0]['digest'] as Map<String, dynamic>?;
         _todayView    = results[1] as Map<String, dynamic>?;
         _stressDensity = results[2] as Map<String, dynamic>?;
+        _errorMessage = null;
         _loading = false;
       });
     } catch (e) {
-      setState(() => _loading = false);
+      setState(() {
+        _errorMessage = e.toString().contains('SocketException') || e.toString().contains('TimeoutException')
+            ? 'Connection error. Check your internet or backend status.'
+            : 'Error: ${e.toString().replaceAll('Exception: ', '')}';
+        _loading = false;
+      });
     }
   }
 
@@ -177,7 +184,9 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             sliver: SliverList(delegate: SliverChildListDelegate([
               // ── AI Digest Card ───────────────────────────────
-              if (_loading)
+              if (_errorMessage != null)
+                _errorCard(_errorMessage!, _loadDashboard)
+              else if (_loading)
                 _shimmerCard()
               else if (_digest != null)
                 _digestCard()
@@ -195,8 +204,13 @@ class _HomeScreenState extends State<HomeScreen> {
               // ── Today's timeline ─────────────────────────────
               _sectionTitle('Today'),
               const SizedBox(height: 8),
-              if (_todayView != null) _todayTimeline() else _shimmerCard(),
-
+              if (_errorMessage != null) 
+                _errorCard(_errorMessage!, _loadDashboard)
+              else if (_todayView != null) 
+                _todayTimeline() 
+              else 
+                _shimmerCard(),
+              
               const SizedBox(height: 12),
 
               // ── Free slots ───────────────────────────────────
@@ -414,6 +428,11 @@ class _HomeScreenState extends State<HomeScreen> {
       future: _api.getExtractedDeadlines(),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) return _shimmerCard();
+        if (snap.hasError) {
+          final err = snap.error.toString().contains('SocketException')
+              ? 'Connection error' : snap.error.toString();
+          return _errorCard(err, () => setState(() {}));
+        }
         final deadlines = snap.data ?? [];
         if (deadlines.isEmpty) return _emptyCard('No deadlines found', Icons.check_circle_outline);
         return Container(
@@ -457,6 +476,24 @@ class _HomeScreenState extends State<HomeScreen> {
       Icon(icon, color: Colors.grey.shade400),
       const SizedBox(width: 10),
       Text(message, style: TextStyle(color: Colors.grey.shade500, fontSize: 14)),
+    ]),
+  );
+
+  Widget _errorCard(String message, VoidCallback onRetry) => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: Colors.red.shade50,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: Colors.red.shade100),
+    ),
+    child: Row(children: [
+      const Icon(Icons.error_outline, color: Colors.red),
+      const SizedBox(width: 12),
+      Expanded(child: Text(message, style: const TextStyle(color: Colors.red, fontSize: 13))),
+      IconButton(
+        icon: const Icon(Icons.refresh, color: Colors.red),
+        onPressed: onRetry,
+      ),
     ]),
   );
 
