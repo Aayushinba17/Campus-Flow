@@ -377,7 +377,7 @@ async def get_extracted_deadlines(user_id: str, days_ahead: int = 7):
         t for t in response.get("Items", [])
         if t.get("source") == "notification"
         and (t.get("deadline") or "9999") >= today
-        and t.get("deadline", "0000") <= cutoff
+        and (t.get("deadline") or "0000") <= cutoff
     ]
     tasks.sort(key=lambda x: x.get("deadline", "9999"))
     return {"deadlines": tasks, "total": len(tasks)}

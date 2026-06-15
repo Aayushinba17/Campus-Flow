@@ -330,7 +330,7 @@ async def check_wellness_reminder(req: WellnessReminderCheckRequest):
         if c.get("type") == "class" and c.get("day", "").lower() == today_day.lower()
     ]
     in_class = any(
-        c.get("start_time", "99:99") <= current_time <= c.get("end_time", "00:00")
+        (c.get("start_time") or "99:99") <= current_time <= (c.get("end_time") or "00:00")
         for c in classes_today
     )
     if in_class:
@@ -409,7 +409,7 @@ async def get_stress_density(req: StressDensityRequest):
     deadlines_48h = [
         t for t in task_resp.get("Items", [])
         if (t.get("deadline") or "9999") >= today
-        and t.get("deadline", "0000") <= two_days
+        and (t.get("deadline") or "0000") <= two_days
         and t.get("status") != "done"
     ]
 
