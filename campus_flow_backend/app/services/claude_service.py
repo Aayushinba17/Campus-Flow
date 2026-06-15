@@ -2,6 +2,13 @@ import json
 from app.core.config import settings
 from app.services.embedding_service import embed, cosine_sim
 
+def safe_json_parse(raw_text: str, fallback: dict = None) -> dict:
+    try:
+        return json.loads(raw_text)
+    except json.JSONDecodeError:
+        return fallback or {}
+
+
 _client = None
 
 class GeminiMessageContent:
@@ -29,7 +36,7 @@ class GeminiMessages:
             contents.append({"role": role, "parts": [{"text": content}]})
 
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model=model,
             config=types.GenerateContentConfig(system_instruction=system),
             contents=contents,
         )
@@ -51,7 +58,7 @@ def get_client():
 
 def get_model() -> str:
     """Returns the correct model ID."""
-    return "gemini-1.5-flash"
+    return settings.GEMINI_MODEL
 
 
 # ── Shared context builder ───────────────────────────────────────────────────
@@ -86,7 +93,7 @@ If a field is unknown, use null. Days must be full names: Monday/Tuesday/etc."""
     raw = response.content[0].text.strip()
     # Strip any accidental markdown fences
     raw = raw.replace("```json", "").replace("```", "").strip()
-    return json.loads(raw)
+    return safe_json_parse(raw, {"classes": []})
 
 def match_messages_to_class(subject: str, professor: str, notifications: list,
                             threshold: float = 0.35, top_k: int = 3) -> list:
@@ -148,7 +155,7 @@ Set is_deadline=true if message mentions submission, due date, exam, assignment 
         }]
     )
     raw = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-    return json.loads(raw)
+    return safe_json_parse(raw, {"classified": [], "urgent_count": 0, "deadlines_found": 0})
 
 
 # ── 3. Daily morning digest ───────────────────────────────────────────────────
@@ -182,7 +189,7 @@ Return ONLY valid JSON:
         }]
     )
     raw = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-    return json.loads(raw)
+    return safe_json_parse(raw, {"greeting": "Good morning!", "urgent_items": [], "todays_classes": [], "deadlines_today": [], "deadlines_this_week": [], "social_summary": "", "wellness_tip": ""})
 
 
 # ── 4. Smart reminder enhancer ────────────────────────────────────────────────
@@ -320,7 +327,7 @@ Return ONLY valid JSON:
         }]
     )
     raw = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-    return json.loads(raw)
+    return safe_json_parse(raw, {"subject": "Unknown", "title": "Unknown", "key_concepts": [], "mindmap": {}, "tasks": [], "formula_list": [], "summary": ""})
 
 
 # ── 7. Notes Q&A ──────────────────────────────────────────────────────────────
@@ -372,7 +379,7 @@ def generate_routine_insights(usage_logs: list, schedule: list) -> dict:
         }]
     )
     raw = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-    return json.loads(raw)
+    return safe_json_parse(raw, {"insights": [], "peak_study_hours": [], "most_distracted_period": "", "recommended_study_slots": [], "weekly_summary": ""})
 
 
 # ── 9. Exam readiness checklist ───────────────────────────────────────────────
@@ -403,7 +410,7 @@ def generate_exam_checklist(exam_info: dict, available_notes: list) -> dict:
         }]
     )
     raw = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-    return json.loads(raw)
+    return safe_json_parse(raw, {"exam_name": "Unknown", "days_remaining": 0, "readiness_score": 0, "checklist": [], "missing_notes_warning": "", "study_plan": ""})
 
 
 # ── 10. Stress density analyzer ───────────────────────────────────────────────
@@ -506,7 +513,7 @@ Rules:
         messages=[{"role": "user", "content": f"Extract tasks from this voice note: \"{transcribed_text}\""}]
     )
     raw = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-    return json.loads(raw)
+    return safe_json_parse(raw, {"tasks": [], "follow_ups": [], "raw_summary": "", "total_items": 0})
 
 
 # ── 12. Missed call context summariser ────────────────────────────────────────
@@ -553,7 +560,7 @@ Be concise. Max 30 words for context_summary. Think about what a busy student ne
         }]
     )
     raw = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-    result = json.loads(raw)
+    result = safe_json_parse(raw, {"context_summary": "", "action_needed": False, "suggested_action": "", "urgency": "low", "follow_up_summary": ""})
     result["has_follow_up"] = True
     return result
 
@@ -624,7 +631,7 @@ Rules:
         }]
     )
     raw = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-    return json.loads(raw)
+    return safe_json_parse(raw, {"deadlines": [], "total_scanned": 0})
 
 
 # ── 14. Free slot task suggester ──────────────────────────────────────────────
@@ -686,7 +693,7 @@ Rules:
         }]
     )
     raw = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-    return json.loads(raw)
+    return safe_json_parse(raw, {"suggestions": [], "overall_advice": ""})
 
 
 # ── 15. Booking & event detector from messages ────────────────────────────────
@@ -756,7 +763,7 @@ Rules:
         }]
     )
     raw = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-    return json.loads(raw)
+    return safe_json_parse(raw, {"events": [], "total_scanned": 0})
 
 
 # ── 16. Exam prep countdown with study slot blocking ──────────────────────────
@@ -824,7 +831,7 @@ Rules:
         }]
     )
     raw = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-    return json.loads(raw)
+    return safe_json_parse(raw, {"exam_name": "Unknown", "exam_date": "", "days_remaining": 0, "study_plan": []})
 
 
 # ── 17. Slack / academic email thread summarizer ──────────────────────────────

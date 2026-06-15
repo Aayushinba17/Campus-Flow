@@ -12,6 +12,7 @@ import 'services/wellness_notification_manager.dart';
 import 'models/wellness_model.dart';
 import 'services/location_service.dart';
 import 'package:intl/intl.dart';
+import 'services/user_prefs.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -92,11 +93,28 @@ void main() async {
     existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
   );
 
+  final wellnessFreq = await UserPrefs.getWaterReminderMins();
   await Workmanager().registerPeriodicTask(
     AppConstants.taskWellness,
     AppConstants.taskWellness,
-    frequency: const Duration(minutes: 30),
-    existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+    frequency: Duration(minutes: wellnessFreq < 15 ? 15 : wellnessFreq),
+    existingWorkPolicy: ExistingPeriodicWorkPolicy.update,
+  );
+
+  final digestHour = await UserPrefs.getDigestHour();
+  final now = DateTime.now();
+  var digestTime = DateTime(now.year, now.month, now.day, digestHour);
+  if (now.isAfter(digestTime)) {
+    digestTime = digestTime.add(const Duration(days: 1));
+  }
+  
+  await Workmanager().registerPeriodicTask(
+    AppConstants.taskDigest,
+    AppConstants.taskDigest,
+    frequency: const Duration(hours: 24),
+    initialDelay: digestTime.difference(now),
+    constraints: Constraints(networkType: NetworkType.connected),
+    existingWorkPolicy: ExistingPeriodicWorkPolicy.update,
   );
 
   await Workmanager().registerPeriodicTask(

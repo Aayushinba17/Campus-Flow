@@ -19,7 +19,7 @@ class ZoneDefinition(BaseModel):
     label: str                  # Human-readable: "My Hostel", "Main Campus"
     latitude: float
     longitude: float
-    radius_meters: int = 200    # Default 200m radius geofence
+    radius_meters: int = 150    # Default 150m radius geofence
 
 class OnboardingRequest(BaseModel):
     """Student marks all their locations during onboarding."""
@@ -142,18 +142,23 @@ async def update_zone_transition(req: LocationUpdateRequest):
     else:
         raise HTTPException(status_code=400, detail="transition must be 'enter' or 'exit'")
 
-    # Update current context
-    table.update_item(
-        Key={"user_id": req.user_id, "location_id": "current_context"},
-        UpdateExpression="SET current_zone = :z, last_transition = :t, updated_at = :u, last_lat = :lat, last_lng = :lng",
-        ExpressionAttributeValues={
-            ":z": new_zone,
-            ":t": req.transition,
-            ":u": now,
-            ":lat": str(req.latitude) if req.latitude else "0",
-            ":lng": str(req.longitude) if req.longitude else "0",
-        },
-    )
+    # Update current context using get/put to avoid ValidationException on missing items
+    try:
+        current = table.get_item(Key={"user_id": req.user_id, "location_id": "current_context"}).get("Item")
+    except Exception:
+        current = None
+
+    if not current:
+        current = {"user_id": req.user_id, "location_id": "current_context", "type": "current"}
+        
+    current.update({
+        "current_zone": new_zone,
+        "last_transition": req.transition,
+        "updated_at": now,
+        "last_lat": str(req.latitude) if req.latitude else "0",
+        "last_lng": str(req.longitude) if req.longitude else "0",
+    })
+    table.put_item(Item=current)
 
     # Log the transition for analytics
     log_id = f"transition_{uuid.uuid4().hex[:8]}"
@@ -249,17 +254,22 @@ async def detect_zone_from_gps(req: CoarseLocationRequest):
     detected_zone = detected.get("zone_name", "unknown") if detected else "transit"
 
     # Auto-update current context
-    table.update_item(
-        Key={"user_id": req.user_id, "location_id": "current_context"},
-        UpdateExpression="SET current_zone = :z, last_transition = :t, updated_at = :u, last_lat = :lat, last_lng = :lng",
-        ExpressionAttributeValues={
-            ":z": detected_zone,
-            ":t": "gps_detect",
-            ":u": now,
-            ":lat": str(req.latitude),
-            ":lng": str(req.longitude),
-        },
-    )
+    try:
+        current = table.get_item(Key={"user_id": req.user_id, "location_id": "current_context"}).get("Item")
+    except Exception:
+        current = None
+
+    if not current:
+        current = {"user_id": req.user_id, "location_id": "current_context", "type": "current"}
+        
+    current.update({
+        "current_zone": detected_zone,
+        "last_transition": "gps_detect",
+        "updated_at": now,
+        "last_lat": str(req.latitude),
+        "last_lng": str(req.longitude),
+    })
+    table.put_item(Item=current)
 
     return {
         "detected_zone": detected_zone,

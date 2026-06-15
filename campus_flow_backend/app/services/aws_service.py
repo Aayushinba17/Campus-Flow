@@ -3,11 +3,9 @@ import uuid
 from app.core.config import settings
 
 def get_rekognition_client():
-    # Rekognition is NOT available in ap-east-1 (Hong Kong).
-    # Using ap-southeast-1 (Singapore) — the closest supported region.
     return boto3.client(
         "rekognition",
-        region_name="us-east-1",
+        region_name=settings.REKOGNITION_REGION,
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
     )
@@ -50,7 +48,7 @@ def extract_text_from_image(image_bytes: bytes) -> str:
     lines = [
         detection["DetectedText"]
         for detection in response["TextDetections"]
-        if detection["Type"] == "LINE" and detection["Confidence"] > 70
+        if detection["Type"] == "LINE" and detection["Confidence"] > settings.OCR_CONFIDENCE_THRESHOLD
     ]
     return "\n".join(lines)
 
@@ -76,6 +74,6 @@ def extract_text_from_s3_image(s3_key: str) -> str:
     lines = [
         d["DetectedText"]
         for d in response["TextDetections"]
-        if d["Type"] == "LINE" and d["Confidence"] > 70
+        if d["Type"] == "LINE" and d["Confidence"] > settings.OCR_CONFIDENCE_THRESHOLD
     ]
     return "\n".join(lines)

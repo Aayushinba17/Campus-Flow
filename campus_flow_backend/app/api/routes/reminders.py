@@ -11,6 +11,13 @@ from app.services.claude_service import enhance_reminder, analyze_stress_density
 router = APIRouter()
 
 
+# ── Constants ──────────────────────────────────────────────────────────────────
+
+WELLNESS_COOLDOWN_MINUTES = {"water": 90, "meal": 180, "sleep": 240, "break": 120}
+DEADLINE_FIRE_TIME_TODAY = "09:00"
+DEADLINE_FIRE_TIME_TOMORROW = "20:00"
+
+
 # ── Models ────────────────────────────────────────────────────────────────────
 
 class PreClassReminderRequest(BaseModel):
@@ -22,6 +29,10 @@ class WellnessReminderCheckRequest(BaseModel):
     user_id: str
     reminder_type: str      # "water"|"meal"|"sleep"|"break"
     current_time: str       # HH:MM
+
+class DismissWellnessRequest(BaseModel):
+    user_id: str
+    reminder_type: str
 
 class StressDensityRequest(BaseModel):
     user_id: str
@@ -218,7 +229,7 @@ async def get_smart_reminders_batch(req: SmartReminderBatchRequest):
     # 3. Deadline reminders
     for task in deadline_tasks:
         is_today = task.get("deadline") == today_str
-        fire_time = "09:00" if is_today else "20:00"
+        fire_time = DEADLINE_FIRE_TIME_TODAY if is_today else DEADLINE_FIRE_TIME_TOMORROW
 
         if fire_time <= current_time and is_today:
             fire_time = current_time  # Fire immediately if past morning
@@ -336,8 +347,7 @@ async def check_wellness_reminder(req: WellnessReminderCheckRequest):
             return {"should_fire": False, "reason": f"Student is {latest_ctx.get('context')}"}
 
     # Check if reminder was recently dismissed
-    cool_down_minutes = {"water": 90, "meal": 180, "sleep": 240, "break": 120}
-    cool_down = cool_down_minutes.get(req.reminder_type, 90)
+    cool_down = WELLNESS_COOLDOWN_MINUTES.get(req.reminder_type, 90)
     cutoff = (datetime.now() - timedelta(minutes=cool_down)).isoformat()
 
     well_resp = wellness_table.query(
@@ -355,15 +365,15 @@ async def check_wellness_reminder(req: WellnessReminderCheckRequest):
 
 
 @router.post("/dismiss-wellness")
-async def dismiss_wellness_reminder(user_id: str, reminder_type: str):
+async def dismiss_wellness_reminder(req: DismissWellnessRequest):
     """
     Records that a wellness reminder was dismissed.
     """
     table = get_table("wellness")
     item = {
-        "user_id": user_id,
+        "user_id": req.user_id,
         "date": datetime.now().isoformat(),
-        "type": f"dismissed_{reminder_type}",
+        "type": f"dismissed_{req.reminder_type}",
         "dismissed_at": datetime.now().isoformat(),
     }
     table.put_item(Item=item)

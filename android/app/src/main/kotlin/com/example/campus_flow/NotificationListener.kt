@@ -11,22 +11,29 @@ class CampusFlowNotificationListener : NotificationListenerService() {
     companion object {
         const val CHANNEL = "campus_flow/notifications"
 
-        // Apps we care about — extend this list as needed
-        val WATCHED_PACKAGES = setOf(
-            "com.whatsapp",
-            "org.telegram.messenger",
-            "com.google.android.gm",            // Gmail
-            "com.microsoft.outlook",
-            "com.slack",
-            "com.android.mms",                  // SMS
-            "com.google.android.apps.messaging",
-            "com.google.android.classroom",     // Google Classroom (optional)
-        )
+        // Apps we care about — now configurable via Flutter SharedPreferences
+        fun getWatchedPackages(context: android.content.Context): Set<String> {
+            val prefs = context.getSharedPreferences("FlutterSharedPreferences", android.content.Context.MODE_PRIVATE)
+            val packagesStr = prefs.getString("flutter.watched_packages", null)
+            if (packagesStr != null) {
+                return packagesStr.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+            }
+            return setOf(
+                "com.whatsapp",
+                "org.telegram.messenger",
+                "com.google.android.gm",            // Gmail
+                "com.microsoft.outlook",
+                "com.slack",
+                "com.android.mms",                  // SMS
+                "com.google.android.apps.messaging",
+                "com.google.android.classroom",     // Google Classroom
+            )
+        }
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         if (sbn == null) return
-        if (sbn.packageName !in WATCHED_PACKAGES) return
+        if (sbn.packageName !in getWatchedPackages(this)) return
 
         val extras = sbn.notification.extras
 

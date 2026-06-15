@@ -24,6 +24,9 @@ class ApiService {
   Future<Map<String, dynamic>> _get(String path) async {
     final r = await http.get(Uri.parse('$_base$path'), headers: _headers)
         .timeout(const Duration(seconds: 15));
+    if (r.statusCode < 200 || r.statusCode >= 300) {
+      throw Exception('API Error (${r.statusCode}): ${r.body}');
+    }
     return jsonDecode(r.body);
   }
 
@@ -31,6 +34,9 @@ class ApiService {
     final r = await http.post(
       Uri.parse('$_base$path'), headers: _headers, body: jsonEncode(body),
     ).timeout(const Duration(seconds: 30));
+    if (r.statusCode < 200 || r.statusCode >= 300) {
+      throw Exception('API Error (${r.statusCode}): ${r.body}');
+    }
     return jsonDecode(r.body);
   }
 
@@ -78,8 +84,8 @@ class ApiService {
   Future<Map<String, dynamic>> getFreeSlotSuggestions(String date) async =>
       _post(AppConstants.scheduleFreeSlots, {'user_id': await _uid, 'date': date});
 
-  Future<Map<String, dynamic>> detectBookings(List<Map<String, dynamic>> messages) async =>
-      _post(AppConstants.scheduleBookings, {'user_id': await _uid, 'messages': messages});
+  Future<Map<String, dynamic>> detectBookings({int hoursBack = 48}) async =>
+      _post(AppConstants.scheduleBookings, {'user_id': await _uid, 'hours_back': hoursBack});
 
   Future<Map<String, dynamic>> confirmBooking(String itemId) async =>
       _post('${AppConstants.scheduleConfirmBk}/${await _uid}/$itemId', {});
@@ -92,16 +98,15 @@ class ApiService {
     return jsonDecode(r.body);
   }
 
-  Future<Map<String, dynamic>> getExamCountdown(String examName, String examDate, {String? subject}) async =>
+  Future<Map<String, dynamic>> getExamCountdown(String examSubject, String examDate, {String? examTime}) async =>
       _post(AppConstants.scheduleExamCount, {
-        'user_id': await _uid, 'exam_name': examName, 'exam_date': examDate,
-        if (subject != null) 'subject': subject,
+        'user_id': await _uid, 'exam_subject': examSubject, 'exam_date': examDate,
+        if (examTime != null) 'exam_time': examTime,
       });
 
-  Future<Map<String, dynamic>> getExamChecklist(String examName, String examDate, {String? subject}) async =>
+  Future<Map<String, dynamic>> getExamChecklist(String examSubject, String examDate) async =>
       _post(AppConstants.scheduleChecklist, {
-        'user_id': await _uid, 'exam_name': examName, 'exam_date': examDate,
-        if (subject != null) 'subject': subject,
+        'user_id': await _uid, 'exam_subject': examSubject, 'exam_date': examDate,
       });
 
   // ═══════════════════════════════════════════════════════════════════════
@@ -138,8 +143,12 @@ class ApiService {
     return r['missed_calls'] ?? [];
   }
 
-  Future<Map<String, dynamic>> extractDeadlinesFromMessages(List<Map<String, dynamic>> messages) async =>
-      _post(AppConstants.notifExtractDead, {'user_id': await _uid, 'messages': messages});
+  Future<Map<String, dynamic>> extractDeadlines({List<String>? notificationIds, int hoursBack = 24}) async =>
+      _post(AppConstants.notifExtractDead, {
+        'user_id': await _uid, 
+        if (notificationIds != null) 'notification_ids': notificationIds,
+        'hours_back': hoursBack
+      });
 
   Future<Map<String, dynamic>> getNotificationStats() async =>
       _get('${AppConstants.notifStats}/${await _uid}');
@@ -202,8 +211,8 @@ class ApiService {
   Future<void> dismissWellnessReminder(String type) async =>
       _post('${AppConstants.remindersDismiss}?user_id=${await _uid}&reminder_type=$type', {});
 
-  Future<Map<String, dynamic>> getSmartReminders(String date) async =>
-      _post(AppConstants.remindersSmartBtch, {'user_id': await _uid, 'date': date});
+  Future<Map<String, dynamic>> getSmartReminders(String currentTime) async =>
+      _post(AppConstants.remindersSmartBtch, {'user_id': await _uid, 'current_time': currentTime});
 
   // ═══════════════════════════════════════════════════════════════════════
   //  CHAT & AI
@@ -318,8 +327,8 @@ class ApiService {
   //  EMAIL SUMMARIZATION
   // ═══════════════════════════════════════════════════════════════════════
 
-  Future<Map<String, dynamic>> summarizeEmail(List<Map<String, dynamic>> emails) async =>
-      _post(AppConstants.emailSummarize, {'user_id': await _uid, 'emails': emails});
+  Future<Map<String, dynamic>> summarizeEmail(List<Map<String, dynamic>> messages) async =>
+      _post(AppConstants.emailSummarize, {'user_id': await _uid, 'messages': messages});
 
   Future<Map<String, dynamic>> summarizeFromNotifications({int hoursBack = 24}) async =>
       _post(AppConstants.emailFromNotifs, {'user_id': await _uid, 'hours_back': hoursBack});

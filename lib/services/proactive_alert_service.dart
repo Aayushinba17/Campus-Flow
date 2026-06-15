@@ -6,6 +6,7 @@ import 'package:workmanager/workmanager.dart';
 import 'package:http/http.dart' as http;
 import '../utils/constants.dart';
 import '../services/user_service.dart';
+import '../services/user_prefs.dart';
 
 class ProactiveAlertService {
   static final ProactiveAlertService _instance = ProactiveAlertService._internal();
@@ -32,7 +33,6 @@ class ProactiveAlertService {
       onDidReceiveNotificationResponse: _onNotificationTap,
     );
     await _createNotificationChannels();
-    await _scheduleBackgroundAlertCheck();
     await _restoreFocusState();
   }
 
@@ -77,28 +77,6 @@ class ProactiveAlertService {
       importance: Importance.low,
       playSound: false,
     ));
-  }
-
-  // ── Background scheduling ──────────────────────────────────────────────
-
-  Future<void> _scheduleBackgroundAlertCheck() async {
-    // Poll for pending alerts every 15 minutes
-    await Workmanager().registerPeriodicTask(
-      'proactive_alert_check',
-      'proactive_alert_check',
-      frequency: const Duration(minutes: 15),
-      constraints: Constraints(networkType: NetworkType.connected),
-      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
-    );
-
-    // Deadline check every 6 hours
-    await Workmanager().registerPeriodicTask(
-      'deadline_proximity_check',
-      'deadline_proximity_check',
-      frequency: const Duration(hours: 6),
-      constraints: Constraints(networkType: NetworkType.connected),
-      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
-    );
   }
 
   // ── 1. Check & fire all pending alerts ────────────────────────────────
@@ -231,6 +209,7 @@ class ProactiveAlertService {
     String? room,
     String? professor,
   }) async {
+    final prefsMins = await UserPrefs.getPreClassReminderMins();
     try {
       final r = await http.post(
         Uri.parse('$_base/api/alerts/pre-class-nudge'),
@@ -239,6 +218,7 @@ class ProactiveAlertService {
           'user_id':   (await UserService.getUserId()),
           'subject':   subject,
           'start_time': startTime,
+          'reminder_mins': prefsMins,
           if (room != null)      'room': room,
           if (professor != null) 'professor': professor,
         }),

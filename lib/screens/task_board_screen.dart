@@ -37,8 +37,12 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> with SingleTickerProv
     setState(() => _loading = false);
   }
 
-  List<dynamic> _filtered(String status) =>
-      _allTasks.where((t) => (t as Map)['status'] == status).toList();
+  List<dynamic> _filtered(String status) {
+    if (status == 'todo') {
+      return _allTasks.where((t) => (t as Map)['status'] == 'todo' || (t as Map)['status'] == 'pending_confirmation').toList();
+    }
+    return _allTasks.where((t) => (t as Map)['status'] == status).toList();
+  }
 
   @override
   Widget build(BuildContext context) {

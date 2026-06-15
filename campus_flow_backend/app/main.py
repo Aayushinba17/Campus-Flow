@@ -1,5 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+import json
+import botocore.exceptions
 from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.database import init_dynamodb
@@ -20,6 +23,12 @@ from app.api.routes import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 0. Validate essential credentials
+    if not settings.GEMINI_API_KEY:
+        raise RuntimeError("Startup Failed: GEMINI_API_KEY is missing")
+    if not settings.AWS_ACCESS_KEY_ID or not settings.AWS_SECRET_ACCESS_KEY:
+        raise RuntimeError("Startup Failed: AWS credentials are missing")
+
     # 1. Initialize database
     await init_dynamodb()
     
@@ -59,9 +68,43 @@ app.include_router(location.router,            prefix="/api/location",        ta
 app.include_router(proactive_alerts.router,    prefix="/api/alerts",          tags=["Proactive Alerts"])
 app.include_router(classroom.router, prefix="/api/classroom", tags=["Classroom"])
 
+@app.exception_handler(botocore.exceptions.ClientError)
+async def botocore_exception_handler(request: Request, exc: botocore.exceptions.ClientError):
+    return JSONResponse(
+        status_code=502,
+        content={"detail": "AWS Service Error", "message": str(exc)},
+    )
+
+@app.exception_handler(json.JSONDecodeError)
+async def json_decode_exception_handler(request: Request, exc: json.JSONDecodeError):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "JSON Parsing Error", "message": str(exc)},
+    )
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "message": str(exc)},
+    )
+
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "CampusFlow API"}
+    try:
+        from app.core.database import get_dynamodb
+        db = get_dynamodb()
+        # A lightweight operation to verify DB connectivity
+        list(db.tables.limit(1))
+        db_status = "ok"
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+
+    return {
+        "status": "ok" if db_status == "ok" else "degraded",
+        "service": "CampusFlow API",
+        "database": db_status
+    }
 
 @app.get("/")
 def root():

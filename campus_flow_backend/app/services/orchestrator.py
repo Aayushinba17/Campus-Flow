@@ -23,16 +23,15 @@ import json
 import uuid
 from datetime import datetime, date, timedelta
 from typing import Optional
-
+from boto3.dynamodb.conditions import Key
 from app.core.database import get_table
 from app.services.claude_service import get_client
 from app.core.config import settings
 from app.services.embedding_service import embed, cosine_sim
 
 # Confidence thresholds — tune these as you collect real demo data
-AUTO_WRITE_THRESHOLD   = 0.85   # >= this -> write directly, zero taps
-ACTIVITY_FEED_THRESHOLD = 0.50  # >= this -> log to activity feed, still auto-write
-                                 # < this  -> discard silently
+AUTO_WRITE_THRESHOLD   = settings.AUTO_WRITE_THRESHOLD
+ACTIVITY_FEED_THRESHOLD = settings.ACTIVITY_FEED_THRESHOLD
 
 
 # ── 1. Event classification (the orchestrator box) ────────────────────────
@@ -48,7 +47,7 @@ def classify_event(raw_event: dict) -> dict:
     """
     client = get_client()
     response = client.messages.create(
-        model=settings.CLAUDE_MODEL,
+        model=settings.GEMINI_MODEL,
         max_tokens=120,
         system="""You triage messages for a student assistant. For the given message,
 decide which specialist agent (if any) should process it. Return ONLY valid JSON:
@@ -93,7 +92,7 @@ def extract_deadline(raw_event: dict, contact_subject_map: dict) -> Optional[dic
             break
 
     response = client.messages.create(
-        model=settings.CLAUDE_MODEL,
+        model=settings.GEMINI_MODEL,
         max_tokens=400,
         system="""Extract a deadline/assignment from this message. Return ONLY valid JSON:
 {
@@ -135,7 +134,7 @@ def extract_booking(raw_event: dict) -> Optional[dict]:
     """
     client = get_client()
     response = client.messages.create(
-        model=settings.CLAUDE_MODEL,
+        model=settings.GEMINI_MODEL,
         max_tokens=400,
         system="""Extract a booking/reservation from this confirmation message.
 Return ONLY valid JSON:
@@ -182,7 +181,7 @@ def extract_plan(raw_event: dict) -> Optional[dict]:
     """
     client = get_client()
     response = client.messages.create(
-        model=settings.CLAUDE_MODEL,
+        model=settings.GEMINI_MODEL,
         max_tokens=300,
         system="""Extract a proposed (unconfirmed) plan from this message. Return ONLY valid JSON:
 {
@@ -267,8 +266,7 @@ def _write_deadline(user_id, extracted, source_event, auto_confirmed, task_table
 
     # ── Dedupe check ───────────────────────────────────────────────────
     existing_resp = task_table.query(
-        KeyConditionExpression="user_id = :uid",
-        ExpressionAttributeValues={":uid": user_id},
+        KeyConditionExpression=Key("user_id").eq(user_id),
     )
     for t in existing_resp.get("Items", []):
         if (t.get("deadline") == deadline_date
@@ -328,8 +326,7 @@ def _write_booking(user_id, extracted, source_event, auto_confirmed, schedule_ta
 
     # ── Dedupe ─────────────────────────────────────────────────────────
     existing_resp = schedule_table.query(
-        KeyConditionExpression="user_id = :uid",
-        ExpressionAttributeValues={":uid": user_id},
+        KeyConditionExpression=Key("user_id").eq(user_id),
     )
     for e in existing_resp.get("Items", []):
         if (e.get("type") == "event"

@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 from app.services.claude_service import get_client, get_model
 
@@ -419,6 +419,7 @@ Do not use bullet points. Output plain text only.
         message = client.messages.create(
             model=get_model(),
             max_tokens=200,
+            system="",
             messages=[{"role": "user", "content": prompt}]
         )
         ai_summary = message.content[0].text

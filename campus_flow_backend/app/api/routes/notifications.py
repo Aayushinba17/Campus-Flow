@@ -11,10 +11,12 @@ from app.services.claude_service import (
     generate_morning_digest,
     build_student_context,
     extract_deadlines_batch,
+    generate_missed_call_context,
 )
 from app.services.orchestrator import process_event_autonomously
 import json
 from app.services.embedding_service import embed
+from app.core.config import settings
  
 router = APIRouter()
 
@@ -36,7 +38,7 @@ class NotificationBatch(BaseModel):
 
 class DigestRequest(BaseModel):
     user_id: str
-    hours_back: int = 8     # Default: last 8 hours for morning digest
+    hours_back: int = settings.DIGEST_HOUR     # Default: last N hours for morning digest
 
 class MarkReadRequest(BaseModel):
     user_id: str
@@ -68,8 +70,8 @@ async def ingest_notifications(batch: NotificationBatch):
 
     Max 100 per batch.
     """
-    if len(batch.notifications) > 100:
-        raise HTTPException(status_code=400, detail="Max 100 notifications per batch")
+    if len(batch.notifications) > settings.MAX_NOTIFICATION_BATCH:
+        raise HTTPException(status_code=400, detail=f"Max {settings.MAX_NOTIFICATION_BATCH} notifications per batch")
 
     notif_table   = get_table("notifications")
     routine_table = get_table("routine_logs")
@@ -136,14 +138,17 @@ async def ingest_notifications(batch: NotificationBatch):
         # This keeps cost down — social/promo notifications skip straight
         # through without a second+third Claude call.
         if cl.get("category") in ["academic", "unknown"] or cl.get("priority", 1) >= 3:
-            result = process_event_autonomously(
-                user_id=batch.user_id,
-                raw_event=raw,
-                contact_subject_map=contact_subject_map,
-            )
-            result["notification_id"] = notif_id
-            result["source_app"] = raw["app"]
-            autonomous_results.append(result)
+            try:
+                result = process_event_autonomously(
+                    user_id=batch.user_id,
+                    raw_event=raw,
+                    contact_subject_map=contact_subject_map,
+                )
+                result["notification_id"] = notif_id
+                result["source_app"] = raw["app"]
+                autonomous_results.append(result)
+            except Exception as e:
+                print(f"Orchestrator error for notif {notif_id}: {e}")
 
     # ── Build response summary ───────────────────────────────────────
     tasks_created   = [r for r in autonomous_results if r.get("action") == "task_created"]

@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict
 import uuid
 from datetime import datetime, timedelta
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 
 from app.core.database import get_table
 from app.services.claude_service import generate_routine_insights
@@ -214,8 +214,7 @@ async def get_sleep_summary(user_id: str, days: int = 7):
 
     response = table.query(
         KeyConditionExpression=Key("user_id").eq(user_id),
-        FilterExpression="begins_with(date, :cutoff_year)",
-        ExpressionAttributeValues={":cutoff_year": cutoff[:4]},
+        FilterExpression=Attr("date").gte(cutoff),
     )
     sleep_logs = [
         e for e in response.get("Items", [])

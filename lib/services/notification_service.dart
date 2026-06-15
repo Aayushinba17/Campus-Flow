@@ -1,5 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'api_service.dart';
+import 'user_prefs.dart';
 
 /// Handles local notifications display and notification listener integration.
 class NotificationService {
@@ -12,9 +13,10 @@ class NotificationService {
 
   /// Buffer incoming notifications before batching to backend
   final List<Map<String, dynamic>> _buffer = [];
-  static const int _batchSize = 20;
+  int _batchSize = 50;
 
   Future<void> initialize() async {
+    _batchSize = await UserPrefs.getNotifBatchSize();
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const ios = DarwinInitializationSettings();
     await _plugin.initialize(

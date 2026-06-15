@@ -6,6 +6,7 @@ from datetime import datetime, date, timedelta
 from boto3.dynamodb.conditions import Key
 from app.core.database import get_table
 from app.services.claude_service import get_client, get_model, match_messages_to_class
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -436,16 +437,7 @@ async def start_focus_mode(req: FocusModeRequest):
     end_time = now + timedelta(minutes=req.duration_minutes)
 
     # Apps to suppress during focus mode
-    SOCIAL_PACKAGES = [
-        "com.whatsapp",
-        "org.telegram.messenger",
-        "com.instagram.android",
-        "com.snapchat.android",
-        "com.twitter.android",
-        "com.facebook.katana",
-        "com.google.android.youtube",
-        "com.zhiliaoapp.musically",   # TikTok
-    ]
+    # Read from settings
 
     # Store focus session
     session_item = {
@@ -496,7 +488,7 @@ async def start_focus_mode(req: FocusModeRequest):
         "duration_minutes":    req.duration_minutes,
         "started_at":          now.isoformat(),
         "ends_at":             end_time.isoformat(),
-        "apps_to_block":       SOCIAL_PACKAGES,
+        "apps_to_block":       settings.SOCIAL_PACKAGES,
         "enable_dnd":          True,
         "allow_calls_from":    [],       # Emergency contacts — configure in onboarding
         "session_type":        req.session_type,
@@ -681,12 +673,13 @@ async def get_pending_alerts(user_id: str):
         and e.get("location", "").lower() in ["off_campus", "off-campus", "external"]
     ]
     for event in events_today:
+        travel_time = int(event.get("travel_time_minutes", 30))
         pending_alerts.append({
             "alert_type":       "travel_buffer",
             "event_title":      event.get("title"),
             "event_time":       event.get("start_time"),
             "is_off_campus":    True,
-            "travel_minutes":   30,
+            "travel_minutes":   travel_time,
             "priority":         "high",
         })
 

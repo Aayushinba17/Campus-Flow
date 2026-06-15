@@ -16,7 +16,27 @@ from app.services.claude_service import (
 from app.services.aws_service import extract_text_from_image, upload_to_s3
 
 router = APIRouter()
+ 
+# ── Constants ──────────────────────────────────────────────────────────────────
 
+WORK_START = "08:00"
+WORK_END = "22:00"
+MIN_SLOT_DURATION = 60
+
+COLOR_MAP = {
+    "class": "#E8592B",
+    "deadline": "#D32F2F",
+    "overdue": "#B71C1C",
+    "exam": "#7B1FA2",
+    "exam_prep": "#7B1FA2",
+    "personal": "#1976D2",
+    "travel": "#00796B",
+    "interview": "#F57C00",
+    "entertainment": "#E91E63",
+    "medical": "#388E3C",
+    "meeting": "#5D4037",
+    "other": "#607D8B",
+}
 
 # ── Models ────────────────────────────────────────────────────────────────────
 
@@ -197,7 +217,7 @@ async def get_today_view(user_id: str):
 
     # Today's classes
     todays_classes = [
-        {**i, "color_category": "class", "display_color": "#E8592B"}
+        {**i, "color_category": "class", "display_color": COLOR_MAP["class"]}
         for i in all_items
         if i.get("type") == "class" and i.get("day", "").lower() == today_day.lower()
     ]
@@ -205,7 +225,7 @@ async def get_today_view(user_id: str):
     # Today's events (manual + auto-detected bookings)
     todays_events = [
         {**i, "color_category": i.get("category", "personal"),
-         "display_color": _get_category_color(i.get("category", "personal"))}
+         "display_color": COLOR_MAP.get(i.get("category", "personal"), COLOR_MAP["other"])}
         for i in all_items
         if i.get("type") == "event" and i.get("date") == today_str
     ]
@@ -216,12 +236,12 @@ async def get_today_view(user_id: str):
     )
     all_tasks = task_resp.get("Items", [])
     due_today = [
-        {**t, "color_category": "deadline", "display_color": "#D32F2F"}
+        {**t, "color_category": "deadline", "display_color": COLOR_MAP["deadline"]}
         for t in all_tasks
         if t.get("deadline") == today_str and t.get("status") != "done"
     ]
     overdue = [
-        {**t, "color_category": "overdue", "display_color": "#B71C1C"}
+        {**t, "color_category": "overdue", "display_color": COLOR_MAP["overdue"]}
         for t in all_tasks
         if t.get("deadline") and t.get("deadline") < today_str and t.get("status") != "done"
     ]
@@ -588,9 +608,6 @@ def _calculate_free_slots(busy_items: list) -> list:
     Given a list of schedule items with start/end times, returns free slots
     between 8AM and 10PM.
     """
-    WORK_START = "08:00"
-    WORK_END = "22:00"
-
     def to_minutes(t: str) -> int:
         h, m = t.split(":")
         return int(h) * 60 + int(m)
@@ -613,7 +630,7 @@ def _calculate_free_slots(busy_items: list) -> list:
     for start, end in busy:
         if cursor < start:
             duration = start - cursor
-            if duration >= 60:
+            if duration >= MIN_SLOT_DURATION:
                 free.append({
                     "start": to_time(cursor),
                     "end": to_time(start),
@@ -621,7 +638,7 @@ def _calculate_free_slots(busy_items: list) -> list:
                 })
         cursor = max(cursor, end)
 
-    if cursor < end_of_day and (end_of_day - cursor) >= 60:
+    if cursor < end_of_day and (end_of_day - cursor) >= MIN_SLOT_DURATION:
         free.append({
             "start": to_time(cursor),
             "end": to_time(end_of_day),
@@ -630,20 +647,3 @@ def _calculate_free_slots(busy_items: list) -> list:
 
     return free
 
-
-def _get_category_color(category: str) -> str:
-    """Returns a hex color for schedule item category — used by Flutter for color-coding."""
-    colors = {
-        "class": "#E8592B",
-        "deadline": "#D32F2F",
-        "exam": "#7B1FA2",
-        "exam_prep": "#7B1FA2",
-        "personal": "#1976D2",
-        "travel": "#00796B",
-        "interview": "#F57C00",
-        "entertainment": "#E91E63",
-        "medical": "#388E3C",
-        "meeting": "#5D4037",
-        "other": "#607D8B",
-    }
-    return colors.get(category, "#607D8B")
