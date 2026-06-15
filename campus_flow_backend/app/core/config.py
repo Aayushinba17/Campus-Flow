@@ -4,7 +4,7 @@ from typing import Optional
 class Settings(BaseSettings):
     # ── AI Provider ───────────────────────────────────────────────
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-1.5-flash"
+    GEMINI_MODEL: str = "gemini-2.5-flash"
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
 
     # Thresholds

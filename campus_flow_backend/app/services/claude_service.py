@@ -26,7 +26,6 @@ class GeminiMessages:
 
         client = genai.Client(
             api_key=settings.GEMINI_API_KEY,
-            # http_options=types.HttpOptions(api_version="v1"),
         )
 
         contents = []
@@ -37,7 +36,10 @@ class GeminiMessages:
 
         response = client.models.generate_content(
             model=model,
-            config=types.GenerateContentConfig(system_instruction=system),
+            config=types.GenerateContentConfig(
+                system_instruction=system,
+                max_output_tokens=max_tokens,
+            ),
             contents=contents,
         )
         text = response.text or "No response generated."
