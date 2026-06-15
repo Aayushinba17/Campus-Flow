@@ -1,4 +1,5 @@
 import json
+import time
 from app.core.config import settings
 from app.services.embedding_service import embed, cosine_sim
 
@@ -11,6 +12,12 @@ def safe_json_parse(raw_text: str, fallback: dict = None) -> dict:
 
 _client = None
 
+# Errors worth retrying — transient overload (503) or rate-limit (429).
+# RESOURCE_EXHAUSTED on a per-request rate limit (not the hard daily quota)
+# usually clears within seconds, so a short retry can succeed.
+_RETRYABLE_MARKERS = ("503", "UNAVAILABLE", "429", "RESOURCE_EXHAUSTED")
+
+
 class GeminiMessageContent:
     def __init__(self, text):
         self.text = text
@@ -20,7 +27,7 @@ class GeminiResponse:
         self.content = [GeminiMessageContent(text)]
 
 class GeminiMessages:
-    def create(self, model, max_tokens, system, messages):
+    def create(self, model, max_tokens, system, messages, max_retries=3, retry_delay=2.0):
         from google import genai
         from google.genai import types
 
@@ -34,16 +41,32 @@ class GeminiMessages:
             role = "user" if m["role"] == "user" else "model"
             contents.append({"role": role, "parts": [{"text": content}]})
 
-        response = client.models.generate_content(
-            model=model,
-            config=types.GenerateContentConfig(
-                system_instruction=system,
-                max_output_tokens=max_tokens,
-            ),
-            contents=contents,
+        config = types.GenerateContentConfig(
+            system_instruction=system,
+            max_output_tokens=max_tokens,
         )
-        text = response.text or "No response generated."
-        return GeminiResponse(text)
+
+        last_err = None
+        for attempt in range(max_retries):
+            try:
+                response = client.models.generate_content(
+                    model=model,
+                    config=config,
+                    contents=contents,
+                )
+                text = response.text or "No response generated."
+                return GeminiResponse(text)
+            except Exception as e:
+                last_err = e
+                err_str = str(e)
+                is_retryable = any(marker in err_str for marker in _RETRYABLE_MARKERS)
+                if not is_retryable or attempt == max_retries - 1:
+                    raise
+                # Exponential backoff: 2s, 4s, 8s...
+                time.sleep(retry_delay * (2 ** attempt))
+
+        # Should never reach here, but keep mypy/linters happy.
+        raise last_err
 
 class GeminiClient:
     def __init__(self):
