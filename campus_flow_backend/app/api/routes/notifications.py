@@ -141,7 +141,7 @@ async def ingest_notifications(batch: NotificationBatch):
         if cl.get("category") in ["academic", "unknown"] or cl.get("priority", 1) >= 3:
             try:
                 result = process_event_autonomously(
-                    user_id=batch.user_id,
+                    user_id=batch.user_id,  
                     raw_event=raw,
                     contact_subject_map=contact_subject_map,
                 )

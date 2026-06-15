@@ -272,7 +272,11 @@ async def get_today_view(user_id: str):
 
     # Calculate free slots
     all_busy = todays_classes + todays_events
-    free_slots = _calculate_free_slots(all_busy)
+    try:
+        free_slots = _calculate_free_slots(all_busy)
+    except Exception as e:
+        print(f"Error calculating free slots: {e}")
+        free_slots = []
 
     # Build unified timeline (sorted by start_time)
     timeline = sorted(

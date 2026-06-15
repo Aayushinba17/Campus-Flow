@@ -189,15 +189,16 @@ def generate_morning_digest(student_context: str, notifications: list) -> dict:
     """
     Generates the 8AM morning briefing card.
     """
-    client = get_client()
-    notif_summary = "\n".join([
-        f"- [{n.get('category','?')}|P{n.get('priority',1)}] {n.get('summary','')}"
-        for n in notifications
-    ])
-    response = client.messages.create(
-        model=get_model(),
-        max_tokens=1000,
-        system="""You are a student's morning briefing assistant. Be concise, warm, and actionable.
+    try:
+        client = get_client()
+        notif_summary = "\n".join([
+            f"- [{n.get('category','?')}|P{n.get('priority',1)}] {n.get('summary','')}"
+            for n in notifications
+        ])
+        response = client.messages.create(
+            model=get_model(),
+            max_tokens=1000,
+            system="""You are a student's morning briefing assistant. Be concise, warm, and actionable.
 Return ONLY valid JSON:
 {
   "greeting": "Good morning [name]! One sentence energy-setter.",
@@ -208,13 +209,24 @@ Return ONLY valid JSON:
   "social_summary": "one sentence on social messages",
   "wellness_tip": "one short tip for today"
 }""",
-        messages=[{
-            "role": "user",
-            "content": f"Student context:\n{student_context}\n\nNotifications from last 8 hours:\n{notif_summary}"
-        }]
-    )
-    raw = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-    return safe_json_parse(raw, {"greeting": "Good morning!", "urgent_items": [], "todays_classes": [], "deadlines_today": [], "deadlines_this_week": [], "social_summary": "", "wellness_tip": ""})
+            messages=[{
+                "role": "user",
+                "content": f"Student context:\n{student_context}\n\nNotifications from last 8 hours:\n{notif_summary}"
+            }]
+        )
+        raw = response.content[0].text.strip().replace("```json", "").replace("```", "").strip()
+        return safe_json_parse(raw, {"greeting": "Good morning!", "urgent_items": [], "todays_classes": [], "deadlines_today": [], "deadlines_this_week": [], "social_summary": "", "wellness_tip": ""})
+    except Exception as e:
+        print(f"Error generating morning digest: {e}")
+        return {
+            "greeting": "Good morning! Ready for the day?",
+            "urgent_items": [],
+            "todays_classes": [],
+            "deadlines_today": [],
+            "deadlines_this_week": [],
+            "social_summary": "Catch up on messages when you can.",
+            "wellness_tip": "Take a deep breath and start your day."
+        }
 
 
 # ── 4. Smart reminder enhancer ────────────────────────────────────────────────
