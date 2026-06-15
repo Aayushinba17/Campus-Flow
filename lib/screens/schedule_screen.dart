@@ -659,9 +659,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
                     Navigator.pop(ctx);
                     _showLoadingDialog('AI generating study plan...');
                     try {
+                      final String finalSubject = subjectCtrl.text.isNotEmpty ? "${nameCtrl.text} (${subjectCtrl.text})" : nameCtrl.text;
                       final result = await _api.getExamCountdown(
-                        nameCtrl.text, DateFormat('yyyy-MM-dd').format(selectedDate!),
-                        subject: subjectCtrl.text.isNotEmpty ? subjectCtrl.text : null,
+                        finalSubject, DateFormat('yyyy-MM-dd').format(selectedDate!),
                       );
                       if (mounted) Navigator.pop(context);
                       setState(() => _examCountdown = result);

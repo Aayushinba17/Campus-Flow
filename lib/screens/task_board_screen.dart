@@ -39,9 +39,9 @@ class _TaskBoardScreenState extends State<TaskBoardScreen> with SingleTickerProv
 
   List<dynamic> _filtered(String status) {
     if (status == 'todo') {
-      return _allTasks.where((t) => (t as Map)['status'] == 'todo' || (t as Map)['status'] == 'pending_confirmation').toList();
+      return _allTasks.where((t) => t['status'] == 'todo' || t['status'] == 'pending_confirmation').toList();
     }
-    return _allTasks.where((t) => (t as Map)['status'] == status).toList();
+    return _allTasks.where((t) => t['status'] == status).toList();
   }
 
   @override
