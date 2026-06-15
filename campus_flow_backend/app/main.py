@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import json
 import botocore.exceptions
 from contextlib import asynccontextmanager
+import app.core.decimal_patch  # Patch FastAPI jsonable_encoder for Decimal
 from app.core.config import settings
 from app.core.database import init_dynamodb
 from app.api.routes import classroom
