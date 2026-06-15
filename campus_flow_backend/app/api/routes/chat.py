@@ -102,7 +102,7 @@ async def send_message(req: ChatMessage):
         cutoff_72h = (datetime.now() - timedelta(hours=72)).isoformat()
         notifications_data = [
             n for n in notif_resp.get("Items", [])
-            if n.get("ingested_at", "") >= cutoff_72h
+            if (n.get("ingested_at") or "") >= cutoff_72h
         ]
         # Sort by recency for message queries
         notifications_data.sort(key=lambda x: x.get("ingested_at", ""), reverse=True)
@@ -208,7 +208,7 @@ async def search_messages(req: MessageSearchRequest):
     )
     notifications = [
         n for n in response.get("Items", [])
-        if n.get("ingested_at", "") >= cutoff
+        if (n.get("ingested_at") or "") >= cutoff
     ]
     notifications.sort(key=lambda x: x.get("ingested_at", ""), reverse=True)
 

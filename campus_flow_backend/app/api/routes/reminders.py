@@ -77,7 +77,7 @@ async def get_pre_class_reminder(req: PreClassReminderRequest):
 
     relevant = [
         n for n in all_notifs
-        if n.get("ingested_at", "") >= cutoff
+        if (n.get("ingested_at") or "") >= cutoff
         and (
             n.get("category") == "academic"
             or subject_lower in n.get("body", "").lower()
@@ -160,7 +160,7 @@ async def get_smart_reminders_batch(req: SmartReminderBatchRequest):
     )
     recent_academic = [
         n for n in notif_resp.get("Items", [])
-        if n.get("ingested_at", "") >= cutoff_6h and n.get("category") == "academic"
+        if (n.get("ingested_at") or "") >= cutoff_6h and n.get("category") == "academic"
     ]
 
     reminders = []
@@ -356,7 +356,7 @@ async def check_wellness_reminder(req: WellnessReminderCheckRequest):
     recent_dismissals = [
         w for w in well_resp.get("Items", [])
         if w.get("type") == f"dismissed_{req.reminder_type}"
-        and w.get("date", "") >= cutoff[:10]
+        and (w.get("date") or "") >= cutoff[:10]
     ]
     if recent_dismissals:
         return {"should_fire": False, "reason": "Recently dismissed"}
@@ -408,7 +408,7 @@ async def get_stress_density(req: StressDensityRequest):
     )
     deadlines_48h = [
         t for t in task_resp.get("Items", [])
-        if t.get("deadline", "9999") >= today
+        if (t.get("deadline") or "9999") >= today
         and t.get("deadline", "0000") <= two_days
         and t.get("status") != "done"
     ]
@@ -420,7 +420,7 @@ async def get_stress_density(req: StressDensityRequest):
     urgent_notifs = [
         n for n in notif_resp.get("Items", [])
         if int(n.get("priority", 1)) >= 4
-        and n.get("ingested_at", "") >= cutoff_2h
+        and (n.get("ingested_at") or "") >= cutoff_2h
         and not n.get("is_read", False)
     ]
 

@@ -193,7 +193,7 @@ async def check_unusual_silence(req: SilenceAlertCheckRequest):
 
     # Calculate historical average gap between messages (last 14 days)
     cutoff_14d = (now - timedelta(days=14)).isoformat()
-    recent_notifs = [n for n in app_notifs if n.get("ingested_at", "") >= cutoff_14d]
+    recent_notifs = [n for n in app_notifs if (n.get("ingested_at") or "") >= cutoff_14d]
 
     avg_gap_hours = 2.0  # Default assumption
     if len(recent_notifs) >= 2:
@@ -221,8 +221,8 @@ async def check_unusual_silence(req: SilenceAlertCheckRequest):
     )
     upcoming_deadlines = [
         t for t in task_resp.get("Items", [])
-        if t.get("deadline", "9999") >= date.today().isoformat()
-        and t.get("deadline", "9999") <= (date.today() + timedelta(days=2)).isoformat()
+        if (t.get("deadline") or "9999") >= date.today().isoformat()
+        and (t.get("deadline") or "9999") <= (date.today() + timedelta(days=2)).isoformat()
         and t.get("status") not in ["done"]
     ]
 
@@ -282,7 +282,7 @@ async def get_pre_class_nudge(req: PreClassNudgeRequest):
     # Filter for recent academic notifications to pass to the semantic matcher
     recent_academic_notifs = [
         n for n in all_notifs
-        if n.get("ingested_at", "") >= cutoff
+        if (n.get("ingested_at") or "") >= cutoff
         and n.get("category") == "academic"
     ]
 

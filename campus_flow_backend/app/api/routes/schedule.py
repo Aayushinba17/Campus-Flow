@@ -266,7 +266,7 @@ async def get_today_view(user_id: str):
     recent_urgent = [
         n for n in notif_resp.get("Items", [])
         if int(n.get("priority", 1)) >= 4
-        and n.get("ingested_at", "") >= cutoff_8h
+        and (n.get("ingested_at") or "") >= cutoff_8h
         and not n.get("is_read", False)
     ]
 
@@ -396,7 +396,7 @@ async def detect_bookings_from_notifications(req: DetectBookingsRequest):
     )
     recent_notifs = [
         n for n in response.get("Items", [])
-        if n.get("ingested_at", "") >= cutoff
+        if (n.get("ingested_at") or "") >= cutoff
     ]
 
     if not recent_notifs:

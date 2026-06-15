@@ -120,7 +120,7 @@ async def summarize_from_stored_notifications(req: SummarizeFromNotificationsReq
         source_set = set(a.lower() for a in req.source_apps)
         email_notifs = [
             n for n in all_notifs
-            if n.get("ingested_at", "") >= cutoff
+            if (n.get("ingested_at") or "") >= cutoff
             and (
                 n.get("app", "").lower() in source_set
                 or n.get("app_package", "") in EMAIL_SLACK_PACKAGES
@@ -130,7 +130,7 @@ async def summarize_from_stored_notifications(req: SummarizeFromNotificationsReq
         # Auto-detect email/Slack apps from known packages
         email_notifs = [
             n for n in all_notifs
-            if n.get("ingested_at", "") >= cutoff
+            if (n.get("ingested_at") or "") >= cutoff
             and (
                 n.get("app_package", "") in EMAIL_SLACK_PACKAGES
                 or n.get("app", "") in EMAIL_SLACK_APPS
@@ -222,7 +222,7 @@ async def get_pending_action_items(user_id: str):
     # Filter to email/Slack/Teams apps
     email_notifs = [
         n for n in all_notifs
-        if n.get("ingested_at", "") >= cutoff
+        if (n.get("ingested_at") or "") >= cutoff
         and (
             n.get("app_package", "") in EMAIL_SLACK_PACKAGES
             or n.get("app", "") in EMAIL_SLACK_APPS

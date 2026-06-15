@@ -263,7 +263,7 @@ async def get_digest(req: DigestRequest):
     all_notifs = response.get("Items", [])
     recent_notifs = [
         n for n in all_notifs
-        if n.get("ingested_at", "") >= cutoff
+        if (n.get("ingested_at") or "") >= cutoff
     ]
 
     # Sort by priority desc
@@ -321,7 +321,7 @@ async def get_recent_notifications(user_id: str, hours: int = 24, min_priority: 
     items = response.get("Items", [])
     filtered = [
         n for n in items
-        if n.get("ingested_at", "") >= cutoff
+        if (n.get("ingested_at") or "") >= cutoff
         and int(n.get("priority", 1)) >= min_priority
     ]
 
@@ -376,7 +376,7 @@ async def get_extracted_deadlines(user_id: str, days_ahead: int = 7):
     tasks = [
         t for t in response.get("Items", [])
         if t.get("source") == "notification"
-        and t.get("deadline", "9999") >= today
+        and (t.get("deadline") or "9999") >= today
         and t.get("deadline", "0000") <= cutoff
     ]
     tasks.sort(key=lambda x: x.get("deadline", "9999"))
@@ -551,7 +551,7 @@ async def extract_deadlines_from_notifications(req: DeadlineExtractionRequest):
     else:
         # Scan recent notifications within the time window
         cutoff = (datetime.now() - timedelta(hours=req.hours_back)).isoformat()
-        to_scan = [n for n in all_notifs if n.get("ingested_at", "") >= cutoff]
+        to_scan = [n for n in all_notifs if (n.get("ingested_at") or "") >= cutoff]
 
     if not to_scan:
         return {"deadlines": [], "total_scanned": 0, "new_tasks_created": 0}
@@ -653,7 +653,7 @@ async def get_notification_stats(user_id: str):
     all_notifs = response.get("Items", [])
 
     # Today's notifications
-    today_notifs = [n for n in all_notifs if n.get("ingested_at", "") >= today_start]
+    today_notifs = [n for n in all_notifs if (n.get("ingested_at") or "") >= today_start]
 
     # All unread (not just today)
     all_unread = [n for n in all_notifs if not n.get("is_read", False)]

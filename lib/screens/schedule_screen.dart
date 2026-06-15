@@ -157,8 +157,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> with SingleTickerProvid
                     _dueTodayList(),
                     const SizedBox(height: 20),
                   ],
-                ]
-              ],
+                ],
+
 
                 // Free slots
                 _sectionHeader('Free Slots', Icons.coffee_outlined, const Color(0xFF059669)),

@@ -88,7 +88,7 @@ async def get_usage_heatmap(user_id: str, days: int = 7):
     )
     entries = [
         e for e in response.get("Items", [])
-        if e.get("type") == "app_usage" and e.get("date", "") >= cutoff
+        if e.get("type") == "app_usage" and (e.get("date") or "") >= cutoff
     ]
 
     # Build 7×24 grid: {day_of_week: {hour: total_minutes}}
@@ -227,7 +227,7 @@ async def get_sleep_summary(user_id: str, days: int = 7):
     )
     sleep_logs = [
         e for e in response.get("Items", [])
-        if e.get("type") == "sleep" and e.get("date", "") >= cutoff
+        if e.get("type") == "sleep" and (e.get("date") or "") >= cutoff
     ]
     sleep_logs.sort(key=lambda x: x.get("date", ""))
 
@@ -259,7 +259,7 @@ async def generate_insights(user_id: str):
     )
     usage_logs = [
         e for e in response.get("Items", [])
-        if e.get("type") == "app_usage" and e.get("date", "") >= cutoff
+        if e.get("type") == "app_usage" and (e.get("date") or "") >= cutoff
     ]
 
     # Fetch schedule for context
