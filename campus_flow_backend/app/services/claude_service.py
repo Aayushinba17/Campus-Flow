@@ -93,8 +93,10 @@ def get_client():
 def get_model() -> str:
     """Returns the correct model ID based on provider."""
     if settings.AI_PROVIDER == "bedrock":
-        return settings.BEDROCK_MODEL_ID
-    return settings.CLAUDE_MODEL
+        return getattr(settings, "BEDROCK_MODEL_ID", "anthropic.claude-sonnet-4-6-20250514")
+    elif settings.AI_PROVIDER == "anthropic":
+        return getattr(settings, "CLAUDE_MODEL", "claude-sonnet-4-6")
+    return "gemini-1.5-flash"
 
 
 # ── Shared context builder ───────────────────────────────────────────────────
